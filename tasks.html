@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作业列表 - 环卫智控系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter,wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+            background: #060b18;
+            color: #e2e8f0;
+            overflow: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0d1424;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #1e3a5f;
+            border-radius: 2px;
+        }
+
+        .glow-cyan {
+            text-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+        }
+
+        .panel {
+            background: linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%);
+            border: 1px solid #1a3350;
+        }
+
+        .panel-glow {
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-item {
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover,
+        .nav-item.active {
+            background: rgba(0, 212, 255, 0.08);
+        }
+
+        .nav-item.active {
+            border-left: 3px solid #00D4FF;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0066FF, #0044CC);
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #1a3350;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+
+        .btn-ghost:hover {
+            border-color: #00D4FF;
+            color: #00D4FF;
+            background: rgba(0, 212, 255, 0.06);
+        }
+
+        .btn-new-route {
+            background: transparent;
+            border: 1px dashed #1a3350;
+            color: #475569;
+            transition: all 0.2s;
+        }
+
+        .btn-new-route:hover {
+            border-color: #00D4FF;
+            color: #00D4FF;
+            background: rgba(0, 212, 255, 0.05);
+            border-style: solid;
+        }
+
+        .status-dot {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.6
+            }
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #00D4FF, #00FF88);
+            border-radius: 2px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 500;
+            border: 1px solid;
+        }
+
+        /* Modal animations */
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: scale(0.94) translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes stepIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .modal-animate {
+            animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .step-animate {
+            animation: stepIn 0.25s ease-out forwards;
+        }
+
+        .map-animate {
+            animation: fadeIn 0.2s ease forwards;
+        }
+
+        .modal-overlay {
+            background: rgba(6, 11, 24, 0.88);
+            backdrop-filter: blur(8px);
+        }
+
+        /* Modal internals */
+        .modal-box {
+            background: linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%);
+            border: 1px solid #1a3350;
+            border-radius: 16px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .modal-body {
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: #1e3a5f;
+            border-radius: 2px;
+        }
+
+        .input-base {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            color: #e2e8f0;
+            padding: 9px 14px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-family: 'Noto Sans SC', 'Inter', sans-serif;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
+            outline: none;
+        }
+
+        .input-base::placeholder {
+            color: #334155;
+        }
+
+        .input-base:focus {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+        }
+
+        .select-base {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            color: #e2e8f0;
+            padding: 9px 36px 9px 14px;
+            border-radius: 9px;
+            font-size: 13px;
+            font-family: 'Noto Sans SC', 'Inter', sans-serif;
+            transition: border-color 0.2s;
+            width: 100%;
+            outline: none;
+            appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+        }
+
+        .select-base:focus {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+        }
+
+        .step-dot {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            transition: all 0.3s;
+            font-family: 'Inter', monospace;
+        }
+
+        .step-line {
+            height: 2px;
+            flex: 1;
+            background: #1a3350;
+            transition: background 0.3s;
+        }
+
+        .step-line.active {
+            background: linear-gradient(90deg, #00D4FF, #0066FF);
+        }
+
+        .mode-card {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            border-radius: 12px;
+            padding: 14px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mode-card:hover {
+            border-color: rgba(0, 212, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .mode-card.active {
+            border-color: var(--mode-color, #00D4FF);
+            background: color-mix(in srgb, var(--mode-color, #00D4FF) 8%, #080f1e);
+        }
+
+        .sub-btn {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            color: #94a3b8;
+            padding: 6px 12px;
+            border-radius: 7px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: 'Noto Sans SC', sans-serif;
+            white-space: nowrap;
+        }
+
+        .sub-btn:hover {
+            border-color: rgba(0, 212, 255, 0.4);
+            color: #e2e8f0;
+        }
+
+        .sub-btn.sel {
+            border-color: var(--sub-color, #00D4FF);
+            color: var(--sub-color, #00D4FF);
+            background: color-mix(in srgb, var(--sub-color, #00D4FF) 10%, #080f1e);
+            font-weight: 500;
+        }
+
+        .sub-btn.independent {
+            border-color: rgba(245, 158, 11, 0.5);
+            color: #fbbf24;
+        }
+
+        .sub-btn.independent:hover {
+            border-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.08);
+        }
+
+        .sub-btn.independent.sel {
+            border-color: #f59e0b;
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.12);
+            font-weight: 500;
+        }
+
+        .status-card {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            border-radius: 12px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .status-card:hover {
+            border-color: #3a5070;
+        }
+
+        .status-card.sel {
+            border-color: var(--sc, #00D4FF);
+            background: color-mix(in srgb, var(--sc, #00D4FF) 8%, #080f1e);
+        }
+
+        .status-dot-sm {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid #3a5070;
+            flex-shrink: 0;
+            transition: all 0.2s;
+            margin-top: 1px;
+        }
+
+        .status-card.sel .status-dot-sm {
+            border-color: var(--sc, #00D4FF);
+            background: var(--sc, #00D4FF);
+            box-shadow: 0 0 8px var(--sc, #00D4FF);
+        }
+
+        .light-card {
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            border-radius: 12px;
+            padding: 14px 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .light-card:hover {
+            border-color: #3a5070;
+        }
+
+        .light-card.on {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: rgba(251, 191, 36, 0.06);
+        }
+
+        .toggle-thumb {
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+            background: #1a3350;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0 auto;
+        }
+
+        .toggle-thumb::after {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: #e2e8f0;
+            border-radius: 50%;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-thumb.on {
+            background: #f59e0b;
+        }
+
+        .toggle-thumb.on::after {
+            transform: translateX(16px);
+        }
+
+        .count-stepper {
+            display: flex;
+            align-items: center;
+            background: #080f1e;
+            border: 1.5px solid #1a3350;
+            border-radius: 9px;
+            overflow: hidden;
+            width: 150px;
+        }
+
+        .count-stepper button {
+            width: 38px;
+            height: 38px;
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .count-stepper button:hover {
+            background: #1a3350;
+            color: #e2e8f0;
+        }
+
+        .count-stepper .val {
+            flex: 1;
+            text-align: center;
+            color: #e2e8f0;
+            font-weight: 600;
+            font-size: 14px;
+            border-left: 1px solid #1a3350;
+            border-right: 1px solid #1a3350;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        .section-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 10px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        .form-label .req {
+            color: #ef4444;
+            margin-left: 2px;
+        }
+
+        .preview-bar {
+            background: rgba(0, 212, 255, 0.04);
+            border: 1px solid rgba(0, 212, 255, 0.12);
+            border-radius: 9px;
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .preview-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-family: 'Noto Sans SC', sans-serif;
+            font-weight: 500;
+        }
+
+        .glow-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+        }
+
+        .icon-close {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify: center;
+            border-radius: 7px;
+            background: transparent;
+            border: 1px solid #1a3350;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .icon-close:hover {
+            background: #1a3350;
+            color: #e2e8f0;
+        }
+
+        /* Route builder map */
+        .map-overlay {
+            background: rgba(6, 11, 24, 0.95);
+            backdrop-filter: blur(12px);
+        }
+
+        .map-box {
+            background: #060b18;
+            border: 1px solid #1a3350;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .map-canvas {
+            cursor: crosshair;
+            display: block;
+        }
+
+        .wp-list-item {
+            background: #080f1e;
+            border: 1px solid #1a3350;
+            border-radius: 8px;
+            padding: 7px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-family: 'Noto Sans SC', sans-serif;
+            transition: all 0.15s;
+        }
+
+        .wp-list-item:hover {
+            border-color: #00D4FF40;
+        }
+
+        .wp-num {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #00D4FF;
+            color: #060b18;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useCallback } = React;
+
+        // ─── Vehicle list ────────────────────────────────────────────────────────────
+
+        const VEHICLE_LIST = [
+            { plate: '鲁B8888', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 WA55', weight: '3100', status: '在线' },
+            { plate: '鲁B9999', workType: '洒水作业', category: '洒水车', subCategory: '5方洒水车', model: '飞碟 D9', weight: '5500', status: '在线' },
+            { plate: '鲁B7777', workType: '清运作业', category: '压缩车', subCategory: '7方压缩车', model: '飞碟 ZLJ', weight: '7200', status: '在线' },
+            { plate: '鲁B6666', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 T8', weight: '3200', status: '在线' },
+        ];
+
+        // ─── Default routes ───────────────────────────────────────────────────────────
+
+        const DEFAULT_ROUTES = [
+            { id: 'r1', label: '路线 A  - 园区主干道', dist: '2.4 km', time: '约 60 分钟', isDefault: true },
+            { id: 'r2', label: '路线 B  - 商业街区', dist: '3.1 km', time: '约 78 分钟', isDefault: true },
+            { id: 'r3', label: '路线 C  - 居民小区', dist: '1.8 km', time: '约 45 分钟', isDefault: true },
+            { id: 'r4', label: '路线 D  - 工业园区', dist: '4.2 km', time: '约 105 分钟', isDefault: true },
+            { id: 'r5', label: '路线 E  - 公园景区', dist: '2.9 km', time: '约 73 分钟', isDefault: true },
+        ];
+
+        // ─── Work modes ────────────────────────────────────────────────────────────────
+
+        const WORK_MODES = [
+            {
+                id: 'wash_sweep', label: '洗扫模式', color: '#00D4FF',
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>,
+                subModes: [
+                    { id: 'left_sweep', label: '左洗扫', exclusive: true },
+                    { id: 'right_sweep', label: '右洗扫', exclusive: true },
+                    { id: 'full_sweep', label: '全洗扫', exclusive: true },
+                    { id: 'center_spray', label: '中喷杆', exclusive: false },
+                ]
+            },
+            {
+                id: 'pure_wash', label: '纯洗模式', color: '#0ea5e9',
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>,
+                subModes: [
+                    { id: 'left_wash', label: '左清洗', exclusive: true },
+                    { id: 'right_wash', label: '右清洗', exclusive: true },
+                    { id: 'full_wash', label: '全清洗', exclusive: true },
+                    { id: 'center_spray2', label: '中喷杆', exclusive: false },
+                ]
+            },
+            {
+                id: 'dry_sweep', label: '干扫模式', color: '#f59e0b',
+                icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20L20 4" /><path d="M20 4l-2-1 1-2" /><path d="M12 12L4 4" /></svg>,
+                subModes: [
+                    { id: 'left_dry', label: '左干扫', exclusive: true },
+                    { id: 'right_dry', label: '右干扫', exclusive: true },
+                    { id: 'full_dry', label: '全干扫', exclusive: true },
+                    { id: 'dust_mist', label: '降尘喷雾', exclusive: false },
+                ]
+            }
+        ];
+
+        const STATUS_OPTIONS = [
+            { id: 'standard', label: '标准作业', desc: '适用于常规清扫任务', color: '#3b82f6' },
+            { id: 'enhanced', label: '增强作业', desc: '适用于重污染区域', color: '#a855f7' }
+        ];
+
+        const LIGHT_OPTIONS = [
+            { id: 'workLight', label: '工作灯', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg> },
+            { id: 'leftSignal', label: '左箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 16 }}>←</span> },
+            { id: 'rightSignal', label: '右箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 16 }}>→</span> },
+        ];
+
+        // ─── Icon helpers ─────────────────────────────────────────────────────────────
+
+        const IconX = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+        const IconCheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+        const IconArrowRight = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>;
+        const IconArrowLeft = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>;
+        const IconInfo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+        const IconZap = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+        const IconPlus = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+        const IconMapPin = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+        const IconTrash = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>;
+        const IconUndo = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 .49-3.9" /></svg>;
+        const IconEdit = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
+        const IconList = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
+        const IconRoute = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></svg>;
+
+        // ─── Step Indicator ──────────────────────────────────────────────────────────
+
+        function StepIndicator({ step }) {
+            const steps = [{ n: 1, label: '基本信息' }, { n: 2, label: '作业配置' }];
+            return (
+                <div className="flex items-center px-5 pt-5 pb-4 gap-0">
+                    {steps.map((s, i) => (
+                        <React.Fragment key={s.n}>
+                            <div className="flex flex-col items-center gap-1.5">
+                                <div className="step-dot" style={{
+                                    background: step >= s.n ? 'linear-gradient(135deg, #00D4FF, #0066FF)' : '#1a3350',
+                                    color: step >= s.n ? '#fff' : '#475569',
+                                    boxShadow: step >= s.n ? '0 0 14px rgba(0,212,255,0.4)' : 'none',
+                                }}>{step > s.n ? <IconCheck /> : s.n}</div>
+                                <span style={{ fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif', fontWeight: step === s.n ? 600 : 400, color: step >= s.n ? '#e2e8f0' : '#475569' }}>{s.label}</span>
+                            </div>
+                            {i < steps.length - 1 && <div className={`step-line mx-3 ${step > s.n ? 'active' : ''}`} />}
+                        </React.Fragment>
+                    ))}
+                </div>
+            );
+        }
+
+        // ─── Step 1 ───────────────────────────────────────────────────────────────────
+
+        function Step1({ data, onChange, routes, onOpenMap }) {
+            const selectedRoute = routes.find(r => r.id === data.route);
+            const selectedVehicle = VEHICLE_LIST.find(v => v.plate === data.vehicle);
+            return (
+                <div className="step-animate space-y-5 px-5 pb-2">
+                    {/* 作业名称 */}
+                    <div>
+                        <label className="form-label">作业名称 <span className="req">*</span></label>
+                        <input type="text" className="input-base" value={data.jobName}
+                            onChange={e => onChange({ ...data, jobName: e.target.value })} placeholder="输入作业名称" />
+                        <p style={{ fontSize: 11, color: '#334155', marginTop: 5, fontFamily: 'Noto Sans SC, sans-serif' }}>默认格式：新作业_YYYYMMDDHHMMSS</p>
+                    </div>
+
+                    {/* 车辆选择 */}
+                    <div>
+                        <label className="form-label">车辆选择 <span className="req">*</span></label>
+                        <select className="select-base" value={data.vehicle}
+                            onChange={e => onChange({ ...data, vehicle: e.target.value })}>
+                            <option value="">请选择车辆</option>
+                            {VEHICLE_LIST.map(v => (
+                                <option key={v.plate} value={v.plate}>{v.plate}（{v.category} · {v.model}）</option>
+                            ))}
+                        </select>
+                        {selectedVehicle && (
+                            <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,168,112,0.05)', border: '1px solid rgba(0,168,112,0.12)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={{ color: '#00a870' }}><IconInfo /></span>
+                                <span style={{ fontSize: 12, color: '#00a870', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    已选车辆：{selectedVehicle.plate}，{selectedVehicle.workType}，状态：{selectedVehicle.status}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 路线选择 */}
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <label className="form-label" style={{ marginBottom: 0 }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconRoute /> 路线选择<span className="req">*</span></span>
+                            </label>
+                        </div>
+
+                        <select className="select-base" value={data.route}
+                            onChange={e => onChange({ ...data, route: e.target.value })}>
+                            <option value="">请选择作业路线</option>
+                            {routes.map(r => (
+                                <option key={r.id} value={r.id}>{r.label}（约{r.dist}）</option>
+                            ))}
+                        </select>
+
+                        
+                    </div>
+
+                    {/* 清扫次数 */}
+                    <div>
+                        <label className="form-label">清扫次数<span className="req">*</span></label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <div className="count-stepper">
+                                <button onClick={() => onChange({ ...data, sweepCount: Math.max(1, data.sweepCount - 1) })}>−</button>
+                                <div className="val">{data.sweepCount}</div>
+                                <button onClick={() => onChange({ ...data, sweepCount: Math.min(3, data.sweepCount + 1) })}>+</button>
+                            </div>
+                            <span style={{ fontSize: 12, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif' }}>次</span>
+                            <span style={{ fontSize: 11, color: '#334155', marginLeft: 'auto', fontFamily: 'Noto Sans SC, sans-serif' }}>范围：1 ~ 3 次</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
+                            {Array.from({ length: 3 }, (_, i) => (
+                                <div key={i} style={{
+                                    flex: 1, height: 4, borderRadius: 2, transition: 'all 0.2s',
+                                    background: i < data.sweepCount ? (i < 2 ? '#00D4FF' : i < 3 ? '#0ea5e9' : '#f59e0b') : '#1a3350',
+                                    boxShadow: i < data.sweepCount ? `0 0 6px ${i < 2 ? 'rgba(0,212,255,0.5)' : i < 3 ? 'rgba(14,165,233,0.5)' : 'rgba(245,158,11,0.5)'}` : 'none',
+                                }} />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ─── Step 2 ───────────────────────────────────────────────────────────────────
+
+        function Step2({ data, onChange }) {
+            const currentMode = WORK_MODES.find(m => m.id === data.workMode);
+
+            const handleModeChange = (modeId) => {
+                const mode = WORK_MODES.find(m => m.id === modeId);
+                const firstExclusive = mode?.subModes.find(s => s.exclusive);
+                onChange({ ...data, workMode: modeId, subMode: firstExclusive?.id || '', independentModes: [] });
+            };
+
+            const handleSubModeToggle = (subMode) => {
+                if (subMode.exclusive) {
+                    onChange({ ...data, subMode: data.subMode === subMode.id ? '' : subMode.id });
+                } else {
+                    const cur = data.independentModes || [];
+                    onChange({ ...data, independentModes: cur.includes(subMode.id) ? cur.filter(id => id !== subMode.id) : [...cur, subMode.id] });
+                }
+            };
+
+            const isSubModeSelected = (subMode) =>
+                subMode.exclusive ? data.subMode === subMode.id : (data.independentModes || []).includes(subMode.id);
+
+            const toggleLight = (id) => onChange({ ...data, lights: { ...data.lights, [id]: !data.lights[id] } });
+
+            const mode = WORK_MODES.find(m => m.id === data.workMode);
+            const status = STATUS_OPTIONS.find(s => s.id === data.jobStatus);
+            const route = data.routeObj;
+            const activeSubs = [];
+            if (data.subMode && mode) { const s = mode.subModes.find(x => x.id === data.subMode); if (s) activeSubs.push(s.label); }
+            (data.independentModes || []).forEach(id => { const s = mode?.subModes.find(x => x.id === id); if (s) activeSubs.push(s.label); });
+            const previewTags = [
+                data.jobName && { label: data.jobName, bg: 'rgba(255,255,255,0.06)', color: '#94a3b8' },
+                route && { label: route.name, bg: 'rgba(0,212,255,0.1)', color: '#00D4FF' },
+                mode && { label: mode.label, bg: `${mode.color}18`, color: mode.color },
+                ...activeSubs.map(l => ({ label: l, bg: 'rgba(245,158,11,0.1)', color: '#fbbf24' })),
+                status && { label: status.label, bg: `${status.color}18`, color: status.color },
+                ...Object.entries(data.lights).filter(([, v]) => v).map(([k]) => ({
+                    label: k === 'workLight' ? '工作灯' : k === 'leftSignal' ? '左转向灯' : '右转向灯',
+                    bg: 'rgba(251,191,36,0.1)', color: '#fbbf24'
+                })),
+            ].filter(Boolean);
+
+            return (
+                <div className="step-animate space-y-5 px-5 pb-2">
+                    {previewTags.length > 0 && (
+                        <div className="preview-bar">
+                            <span style={{ fontSize: 10, color: '#334155', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginRight: 2 }}>预览</span>
+                            {previewTags.map((t, i) => <span key={i} className="preview-tag" style={{ background: t.bg, color: t.color }}>{t.label}</span>)}
+                        </div>
+                    )}
+
+                    {/* 工作模式 */}
+                    <div>
+                        <label className="section-label">工作模式</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                            {WORK_MODES.map(m => (
+                                <div key={m.id} className={`mode-card ${data.workMode === m.id ? 'active' : ''}`}
+                                    style={{ '--mode-color': m.color }} onClick={() => handleModeChange(m.id)}>
+                                    <div style={{
+                                        width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px',
+                                        background: data.workMode === m.id ? m.color : '#1a3350',
+                                        color: data.workMode === m.id ? '#fff' : '#64748b',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: data.workMode === m.id ? `0 0 14px ${m.color}60` : 'none', transition: 'all 0.2s',
+                                    }}>{m.icon}</div>
+                                    <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'Noto Sans SC, sans-serif', color: data.workMode === m.id ? '#e2e8f0' : '#64748b' }}>{m.label}</div>
+                                    {data.workMode === m.id && <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, margin: '5px auto 0', boxShadow: `0 0 8px ${m.color}` }} />}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 子模式 */}
+                    {currentMode && (
+                        <div>
+                            <label className="section-label" style={{ color: currentMode.color }}>
+                                {currentMode.label} · 子模式
+                                <span style={{ color: '#475569', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>（左/右/全 互斥；中喷杆/降尘喷雾 可同时启用）</span>
+                            </label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {currentMode.subModes.map(sub => (
+                                    <button key={sub.id} className={`sub-btn ${isSubModeSelected(sub) ? 'sel' : ''} ${!sub.exclusive ? 'independent' : ''}`}
+                                        style={{ '--sub-color': currentMode.color }} onClick={() => handleSubModeToggle(sub)}>
+                                        {isSubModeSelected(sub) && <span style={{ marginRight: 3, display: 'inline-flex' }}><IconCheck /></span>}
+                                        {sub.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 作业状态 */}
+                    <div>
+                        <label className="section-label">作业模式</label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                            {STATUS_OPTIONS.map(opt => (
+                                <div key={opt.id} className={`status-card ${data.jobStatus === opt.id ? 'sel' : ''}`}
+                                    style={{ '--sc': opt.color }} onClick={() => onChange({ ...data, jobStatus: opt.id })}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                        <div className="status-dot-sm" />
+                                        <div>
+                                            <div style={{ fontSize: 13, fontWeight: 600, color: data.jobStatus === opt.id ? '#e2e8f0' : '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif', marginBottom: 2 }}>{opt.label}</div>
+                                            <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif' }}>{opt.desc}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* 灯光设置 */}
+                    <div>
+                        <label className="section-label">
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                                灯光设置
+                            </span>
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                            {LIGHT_OPTIONS.map(l => (
+                                <div key={l.id} className={`light-card ${data.lights[l.id] ? 'on' : ''}`} onClick={() => toggleLight(l.id)}>
+                                    <div style={{
+                                        width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px',
+                                        background: data.lights[l.id] ? 'rgba(251,191,36,0.15)' : '#1a3350',
+                                        color: data.lights[l.id] ? '#fbbf24' : '#475569',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: data.lights[l.id] ? '0 0 14px rgba(251,191,36,0.3)' : 'none', transition: 'all 0.2s',
+                                    }}>{l.icon}</div>
+                                    <div style={{ fontSize: 12, fontFamily: 'Noto Sans SC, sans-serif', color: data.lights[l.id] ? '#fbbf24' : '#64748b', marginBottom: 8 }}>{l.label}</div>
+                                    <div className={`toggle-thumb ${data.lights[l.id] ? 'on' : ''}`} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ─── Route Builder Map ────────────────────────────────────────────────────────
+
+        function RouteBuilderMap({ onSave, onClose, initialRoute }) {
+            const canvasRef = useRef(null);
+            const [waypoints, setWaypoints] = useState(
+                (initialRoute?.waypoints || []).map((wp, i) => ({
+                    ...wp,
+                    label: wp.label || `途经点 ${i + 1}`,
+                }))
+            );
+            const [editingWpIdx, setEditingWpIdx] = useState(null); // which waypoint is being renamed
+            const [dragging, setDragging] = useState(null); // { index, startX, startY }
+            const [hovered, setHovered] = useState(null);
+            const [routeName, setRouteName] = useState(initialRoute?.name || '');
+            const [routeDesc, setRouteDesc] = useState(initialRoute?.desc || '');
+            const [activeBtn, setActiveBtn] = useState('select'); // 'select' | 'add'
+            const CANVAS_W = 640;
+            const CANVAS_H = 380;
+            const GRID = 40;
+            const WP_RADIUS = 9;
+            const ROAD_COLOR = '#1a3350';
+            const NODE_COLOR = '#0ea5e9';
+
+            // Draw canvas
+            const draw = useCallback((wpList, hoverIdx) => {
+                const canvas = canvasRef.current;
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+                // Background
+                ctx.fillStyle = '#060b18';
+                ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+                // Grid
+                ctx.strokeStyle = '#0d1a2e';
+                ctx.lineWidth = 1;
+                for (let x = 0; x <= CANVAS_W; x += GRID) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke(); }
+                for (let y = 0; y <= CANVAS_H; y += GRID) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke(); }
+
+                // Simulated road network — a few horizontal/vertical roads
+                const roads = [
+                    // Horizontal
+                    { x1: 0, y1: 80, x2: CANVAS_W, y2: 80 },
+                    { x1: 0, y1: 160, x2: CANVAS_W, y2: 160 },
+                    { x1: 0, y1: 240, x2: CANVAS_W, y2: 240 },
+                    { x1: 0, y1: 320, x2: CANVAS_W, y2: 320 },
+                    // Vertical
+                    { x1: 120, y1: 0, x2: 120, y2: CANVAS_H },
+                    { x1: 280, y1: 0, x2: 280, y2: CANVAS_H },
+                    { x1: 440, y1: 0, x2: 440, y2: CANVAS_H },
+                    { x1: 560, y1: 0, x2: 560, y2: CANVAS_H },
+                ];
+                roads.forEach(r => {
+                    ctx.beginPath();
+                    ctx.moveTo(r.x1, r.y1);
+                    ctx.lineTo(r.x2, r.y2);
+                    ctx.strokeStyle = ROAD_COLOR;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                    // Road edge
+                    ctx.strokeStyle = '#1a3a55';
+                    ctx.lineWidth = 7;
+                    ctx.stroke();
+                    ctx.strokeStyle = ROAD_COLOR;
+                    ctx.lineWidth = 5;
+                    ctx.stroke();
+                });
+
+                // Road labels
+                ctx.font = '10px Inter, sans-serif';
+                ctx.fillStyle = '#1e3a5f';
+                ctx.fillText('主干道 A', 10, 83);
+                ctx.fillText('次干道 B', 10, 163);
+                ctx.fillText('支路 C', 10, 243);
+                ctx.fillText('辅路 D', 10, 323);
+                ctx.fillText('A', 116, 14);
+                ctx.fillText('B', 276, 14);
+                ctx.fillText('C', 436, 14);
+                ctx.fillText('D', 556, 14);
+
+                // Route path (smooth polyline through waypoints)
+                if (wpList.length >= 2) {
+                    ctx.beginPath();
+                    ctx.moveTo(wpList[0].x, wpList[0].y);
+                    for (let i = 1; i < wpList.length; i++) {
+                        ctx.lineTo(wpList[i].x, wpList[i].y);
+                    }
+                    ctx.strokeStyle = '#00D4FF';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([8, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Hover highlight between points
+                if (hoverIdx !== null && wpList.length >= 2) {
+                    const p1 = wpList[Math.max(0, hoverIdx - 1)];
+                    const p2 = wpList[Math.min(wpList.length - 1, hoverIdx)];
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.strokeStyle = 'rgba(0,212,255,0.35)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+
+                // Waypoints
+                wpList.forEach((wp, i) => {
+                    const isHover = hoverIdx === i;
+                    const isDragging = dragging && dragging.index === i;
+
+                    // Glow
+                    if (isHover || isDragging) {
+                        ctx.beginPath();
+                        ctx.arc(wp.x, wp.y, WP_RADIUS + 6, 0, Math.PI * 2);
+                        const grd = ctx.createRadialGradient(wp.x, wp.y, 0, wp.x, wp.y, WP_RADIUS + 6);
+                        grd.addColorStop(0, 'rgba(0,212,255,0.3)');
+                        grd.addColorStop(1, 'rgba(0,212,255,0)');
+                        ctx.fillStyle = grd;
+                        ctx.fill();
+                    }
+
+                    // Circle
+                    ctx.beginPath();
+                    ctx.arc(wp.x, wp.y, WP_RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = isDragging ? '#0066FF' : (isHover ? '#00e5ff' : '#00D4FF');
+                    ctx.fill();
+                    ctx.strokeStyle = isDragging ? '#fff' : 'rgba(255,255,255,0.4)';
+                    ctx.lineWidth = isDragging ? 2 : 1.5;
+                    ctx.stroke();
+
+                    // Number or label
+                    if (wp.label && wp.label !== `途经点 ${i + 1}`) {
+                        // Show custom name above marker
+                        ctx.fillStyle = '#e2e8f0';
+                        ctx.font = '9px Noto Sans SC, Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        const labelText = wp.label.length > 6 ? wp.label.slice(0, 6) + '…' : wp.label;
+                        ctx.fillText(labelText, wp.x, wp.y - WP_RADIUS - 2);
+                        // Number below
+                        ctx.fillStyle = '#060b18';
+                        ctx.font = 'bold 9px Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(i + 1, wp.x, wp.y);
+                    } else {
+                        ctx.fillStyle = '#060b18';
+                        ctx.font = 'bold 10px Inter, sans-serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(i + 1, wp.x, wp.y);
+                    }
+
+                    // Label
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '10px Noto Sans SC, Inter, sans-serif';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(`(${wp.x}, ${wp.y})`, wp.x + WP_RADIUS + 3, wp.y - WP_RADIUS - 2);
+                });
+
+                // Cursor hint
+                if (wpList.length === 0) {
+                    ctx.fillStyle = 'rgba(0,212,255,0.3)';
+                    ctx.font = '13px Noto Sans SC, sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('👆 点击地图添加途经点', CANVAS_W / 2, CANVAS_H / 2);
+                }
+            }, [dragging]);
+
+            useEffect(() => {
+                draw(waypoints, hovered);
+            }, [waypoints, hovered, dragging, draw]);
+
+            // Get mouse position relative to canvas
+            const getPos = (e) => {
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = CANVAS_W / rect.width;
+                const scaleY = CANVAS_H / rect.height;
+                return {
+                    x: Math.round((e.clientX - rect.left) * scaleX),
+                    y: Math.round((e.clientY - rect.top) * scaleY),
+                };
+            };
+
+            // Snap to grid
+            const snap = (v) => Math.round(v / GRID) * GRID;
+
+            // Find waypoint at position
+            const findWP = (x, y) => {
+                for (let i = waypoints.length - 1; i >= 0; i--) {
+                    const wp = waypoints[i];
+                    const d = Math.hypot(x - wp.x, y - wp.y);
+                    if (d <= WP_RADIUS + 4) return i;
+                }
+                return null;
+            };
+
+            const handleCanvasMouseDown = (e) => {
+                const pos = getPos(e);
+                const idx = findWP(pos.x, pos.y);
+                if (idx !== null) {
+                    setDragging({ index: idx, startX: pos.x, startY: pos.y });
+                    setActiveBtn('select');
+                } else if (activeBtn === 'add') {
+                    const newLabel = `途经点 ${waypoints.length + 1}`;
+                    const snapped = { x: snap(pos.x), y: snap(pos.y), label: newLabel };
+                    setWaypoints(prev => [...prev, snapped]);
+                }
+            };
+
+            const handleCanvasMouseMove = (e) => {
+                const pos = getPos(e);
+                if (dragging !== null) {
+                    const snapped = { x: snap(pos.x), y: snap(pos.y) };
+                    setWaypoints(prev => prev.map((wp, i) => i === dragging.index ? { ...wp, ...snapped } : wp));
+                } else {
+                    setHovered(findWP(pos.x, pos.y));
+                }
+            };
+
+            const handleCanvasMouseUp = () => setDragging(null);
+            const handleCanvasMouseLeave = () => { setDragging(null); setHovered(null); };
+
+            const handleRemoveLast = () => {
+                if (waypoints.length > 0) setWaypoints(prev => prev.slice(0, -1));
+            };
+
+            const handleClear = () => setWaypoints([]);
+
+            const handleSave = () => {
+                if (!routeName.trim()) { alert('请输入路线名称'); return; }
+                if (waypoints.length < 2) { alert('请至少添加 2 个途经点'); return; }
+                // Compute approximate distance (grid units * scale)
+                const scale = 30; // 1 grid unit ≈ 30 meters
+                let dist = 0;
+                for (let i = 1; i < waypoints.length; i++) {
+                    dist += Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
+                }
+                const distKm = (dist * scale / 1000).toFixed(1);
+                const timeMin = Math.round((dist * scale / 1000) / 5 * 60);
+                const newRoute = {
+                    id: initialRoute?.id || ('r_' + Date.now()),
+                    label: `路线 ${routeName}`,
+                    name: routeName,
+                    desc: routeDesc,
+                    dist: `${distKm} km`,
+                    time: `约 ${timeMin} 分钟`,
+                    waypoints,
+                    isDefault: false,
+                };
+                onSave(newRoute);
+            };
+
+            return (
+                <div className="fixed inset-0 map-overlay flex items-center justify-center z-50 p-4 map-animate" onClick={onClose}>
+                    <div style={{
+                        background: 'linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%)',
+                        border: '1px solid #1a3350', borderRadius: 16,
+                        maxWidth: 980, width: '100%', maxHeight: '92vh', overflow: 'hidden',
+                        display: 'flex', flexDirection: 'column', animation: 'modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                    }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+                            <div>
+                                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+                                    {initialRoute ? '编辑路线' : '创建路线'}
+                                </h2>
+                                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    在地图上点击添加途经点，拖拽调整位置，保存后可在作业配置中使用
+                                </p>
+                            </div>
+                            <button className="icon-close" onClick={onClose}><IconX /></button>
+                        </div>
+
+                        <div className="glow-line" style={{ margin: '14px 20px 0', flexShrink: 0 }} />
+
+                        {/* Body: map + sidebar */}
+                        <div style={{ display: 'flex', gap: 16, padding: '14px 20px', overflow: 'hidden', flex: 1, minHeight: 0 }}>
+                            {/* Left: map canvas */}
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {/* Toolbar */}
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+                                    <button
+                                        onClick={() => setActiveBtn('add')}
+                                        style={{
+                                            padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                                            display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'Noto Sans SC, sans-serif',
+                                            background: activeBtn === 'add' ? 'rgba(0,212,255,0.15)' : '#080f1e',
+                                            border: `1.5px solid ${activeBtn === 'add' ? '#00D4FF' : '#1a3350'}`,
+                                            color: activeBtn === 'add' ? '#00D4FF' : '#94a3b8',
+                                            transition: 'all 0.15s',
+                                        }}>
+                                        <IconPlus /> 添加途经点
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveBtn('select')}
+                                        style={{
+                                            padding: '6px 14px', borderRadius: 8, fontSize: 12, cursor: 'pointer',
+                                            fontFamily: 'Noto Sans SC, sans-serif',
+                                            background: activeBtn === 'select' ? 'rgba(0,212,255,0.1)' : '#080f1e',
+                                            border: `1.5px solid ${activeBtn === 'select' ? '#00D4FF60' : '#1a3350'}`,
+                                            color: activeBtn === 'select' ? '#e2e8f0' : '#94a3b8',
+                                            transition: 'all 0.15s',
+                                        }}>
+                                        ↖ 移动途经点
+                                    </button>
+                                    <button onClick={handleRemoveLast} disabled={waypoints.length === 0}
+                                        style={{ padding: '6px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', background: '#080f1e', border: '1.5px solid #1a3350', color: waypoints.length === 0 ? '#334155' : '#94a3b8', transition: 'all 0.15s' }}>
+                                        <IconUndo /> 撤销
+                                    </button>
+                                    <button onClick={handleClear} disabled={waypoints.length === 0}
+                                        style={{ padding: '6px 10px', borderRadius: 8, fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', background: '#080f1e', border: '1.5px solid #1a3350', color: waypoints.length === 0 ? '#334155' : '#ef4444', transition: 'all 0.15s' }}>
+                                        <IconTrash /> 清空
+                                    </button>
+                                    <div style={{ marginLeft: 'auto', fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                                        途经点：<span style={{ color: '#00D4FF', fontWeight: 600 }}>{waypoints.length}</span>
+                                    </div>
+                                </div>
+
+                                {/* Canvas */}
+                                <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid #1a3350', flex: 1, minHeight: 0 }}>
+                                    <canvas
+                                        ref={canvasRef}
+                                        width={CANVAS_W}
+                                        height={CANVAS_H}
+                                        style={{ width: '100%', height: '100%', display: 'block', cursor: activeBtn === 'add' ? 'crosshair' : 'default', minHeight: 300 }}
+                                        onMouseDown={handleCanvasMouseDown}
+                                        onMouseMove={handleCanvasMouseMove}
+                                        onMouseUp={handleCanvasMouseUp}
+                                        onMouseLeave={handleCanvasMouseLeave}
+                                        onContextMenu={e => { e.preventDefault(); if (waypoints.length > 0) setWaypoints(prev => prev.slice(0, -1)); }}
+                                    />
+                                </div>
+
+                                {/* Hint */}
+                                <div style={{ fontSize: 11, color: '#334155', fontFamily: 'Inter, sans-serif', textAlign: 'center' }}>
+                                    💡 点击添加途经点 · 拖拽移动位置 · 右键撤销最后一点
+                                </div>
+                            </div>
+
+                            {/* Right: waypoint list + form */}
+                            <div style={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden' }}>
+                                {/* Waypoint list */}
+                                <div style={{ background: '#080f1e', border: '1px solid #1a3350', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
+                                    <div style={{ padding: '8px 12px', borderBottom: '1px solid #1a3350', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>途经点列表</span>
+                                        {waypoints.length > 0 && (
+                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 9999, background: 'rgba(0,212,255,0.1)', color: '#00D4FF', fontFamily: 'Inter, sans-serif' }}>{waypoints.length}</span>
+                                        )}
+                                    </div>
+                                    <div style={{ maxHeight: 200, overflowY: 'auto', padding: 8 }}>
+                                        {waypoints.length === 0 ? (
+                                            <div style={{ textAlign: 'center', padding: '20px 0', color: '#334155', fontSize: 12, fontFamily: 'Noto Sans SC, sans-serif' }}>暂无途经点<br />请在地图上点击添加</div>
+                                        ) : (
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                                {waypoints.map((wp, i) => (
+                                                    <div key={i} className="wp-list-item" style={{ alignItems: 'flex-start' }}>
+                                                        <div className="wp-num" style={{ marginTop: 2 }}>{i + 1}</div>
+                                                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                            {editingWpIdx === i ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={wp.label}
+                                                                    autoFocus
+                                                                    style={{
+                                                                        background: '#060b18', border: '1.5px solid #00D4FF', borderRadius: 5,
+                                                                        color: '#e2e8f0', fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif',
+                                                                        padding: '2px 6px', width: '100%', outline: 'none',
+                                                                    }}
+                                                                    onChange={e => setWaypoints(prev => prev.map((p, j) => j === i ? { ...p, label: e.target.value } : p))}
+                                                                    onBlur={() => setEditingWpIdx(null)}
+                                                                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') setEditingWpIdx(null); }}
+                                                                />
+                                                            ) : (
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                                    <div style={{ color: '#e2e8f0', fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                                                                        {wp.label || `途经点 ${i + 1}`}
+                                                                    </div>
+                                                                    <button onClick={() => setEditingWpIdx(i)}
+                                                                        style={{ background: 'transparent', border: 'none', color: '#334155', cursor: 'pointer', padding: 1, display: 'flex', borderRadius: 3, flexShrink: 0, transition: 'all 0.1s' }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.color = '#00D4FF'; }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.color = '#334155'; }}
+                                                                        title="重命名">
+                                                                        <IconEdit />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                            <div style={{ color: '#475569', fontSize: 10, fontFamily: 'Inter, sans-serif', marginTop: editingWpIdx === i ? 4 : 2 }}>
+                                                                x:{wp.x}  y:{wp.y}
+                                                            </div>
+                                                        </div>
+                                                        <button onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))}
+                                                            style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex', borderRadius: 4, transition: 'all 0.1s', flexShrink: 0, marginTop: 2 }}
+                                                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                                            onMouseLeave={e => e.currentTarget.style.color = '#475569'}>
+                                                            <IconTrash />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Route info */}
+                                <div style={{ background: '#080f1e', border: '1px solid #1a3350', borderRadius: 10, padding: 12, flexShrink: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', marginBottom: 10 }}>路线信息</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                        <div>
+                                            <label style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif', display: 'block', marginBottom: 4 }}>路线名称 <span style={{ color: '#ef4444' }}>*</span></label>
+                                            <input type="text" className="input-base" value={routeName} onChange={e => setRouteName(e.target.value)}
+                                                placeholder="例如：东区清扫路线" style={{ fontSize: 12 }} />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif', display: 'block', marginBottom: 4 }}>路线描述</label>
+                                            <textarea className="input-base" value={routeDesc} onChange={e => setRouteDesc(e.target.value)}
+                                                placeholder="描述此路线的特点或用途" rows={2} style={{ resize: 'none', fontSize: 12 }} />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Stats */}
+                                {waypoints.length >= 2 && (
+                                    <div style={{ background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)', borderRadius: 10, padding: '8px 12px', flexShrink: 0 }}>
+                                        <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>路线估算</div>
+                                        {(() => {
+                                            let dist = 0;
+                                            for (let i = 1; i < waypoints.length; i++) dist += Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
+                                            const distKm = (dist * 30 / 1000).toFixed(1);
+                                            const timeMin = Math.round((dist * 30 / 1000) / 5 * 60);
+                                            return (
+                                                <div style={{ display: 'flex', gap: 12 }}>
+                                                    <div>
+                                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#00D4FF', fontFamily: 'Inter, sans-serif', lineHeight: 1 }}>{distKm}</div>
+                                                        <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>公里</div>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#00FF88', fontFamily: 'Inter, sans-serif', lineHeight: 1 }}>{timeMin}</div>
+                                                        <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>分钟</div>
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#94a3b8', fontFamily: 'Inter, sans-serif', lineHeight: 1 }}>{waypoints.length}</div>
+                                                        <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>途经点</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div style={{ padding: '14px 20px 18px', borderTop: '1px solid #1a3350', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'linear-gradient(to top, #0a1220 60%, transparent)', flexShrink: 0 }}>
+                            <div style={{ fontSize: 12, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                共 <span style={{ color: '#00D4FF' }}>{waypoints.length}</span> 个途经点
+                            </div>
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button className="btn-ghost" style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={onClose}>取消</button>
+                                <button
+                                    className="btn-primary"
+                                    style={{ padding: '8px 18px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif', background: 'linear-gradient(135deg, #00a870, #008060)', boxShadow: '0 4px 12px rgba(0,180,100,0.3)' }}
+                                    onClick={handleSave}>
+                                    <IconCheck /> 保存路线
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ─── New Task Modal ───────────────────────────────────────────────────────────
+
+        function NewTaskModal({ onClose, onCreate, routes, onOpenMap, repeatData }) {
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const defaultName = repeatData
+                ? `${repeatData.name}_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+                : `新作业_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+
+            const [step, setStep] = useState(1);
+            const [form, setForm] = useState(() => {
+                if (repeatData) {
+                    // Find matching route
+                    const routeObj = routes.find(r => repeatData.routes?.length && r.name === repeatData.routes[0].name) || null;
+                    // Map mode label to mode id
+                    const modeMap = { '洗扫模式': 'wash_sweep', '纯洗模式': 'pure_wash', '干扫模式': 'dry_sweep' };
+                    const workMode = modeMap[repeatData.mode] || 'wash_sweep';
+                    // Map sub modes
+                    const mode = WORK_MODES.find(m => m.id === workMode);
+                    let subMode = 'full_sweep';
+                    let independentModes = [];
+                    if (repeatData.modeSubs && mode) {
+                        const subs = repeatData.modeSubs.split(' + ');
+                        const exclusiveSub = mode.subModes.find(s => subs.some(label => s.label.includes(label.split(' ')[0])));
+                        if (exclusiveSub) subMode = exclusiveSub.id;
+                        mode.subModes.filter(s => !s.exclusive).forEach(s => {
+                            if (subs.some(label => s.label.includes(label.split(' ')[0]))) {
+                                independentModes.push(s.id);
+                            }
+                        });
+                    }
+                    // Map lights
+                    const lights = {
+                        workLight: repeatData.lights?.includes('工作灯') || false,
+                        leftSignal: repeatData.lights?.includes('左转向灯') || false,
+                        rightSignal: repeatData.lights?.includes('右转向灯') || false,
+                    };
+                    return {
+                        jobName: defaultName,
+                        vehicle: repeatData.vehicle || '',
+                        route: routeObj?.id || '',
+                        routeObj,
+                        sweepCount: repeatData.sweepCount || 1,
+                        workMode,
+                        subMode,
+                        independentModes,
+                        jobStatus: repeatData.status === '增强作业' ? 'enhanced' : 'standard',
+                        lights,
+                    };
+                }
+                return {
+                    jobName: defaultName,
+                    vehicle: '',
+                    route: '',
+                    routeObj: null,
+                    sweepCount: 1,
+                    workMode: 'wash_sweep',
+                    subMode: 'full_sweep',
+                    independentModes: [],
+                    jobStatus: 'standard',
+                    lights: { workLight: false, leftSignal: false, rightSignal: false },
+                };
+            });
+
+            // When a custom route is saved while modal is open, update the form's routeObj
+            const handleRouteSaved = (route) => {
+                setForm(prev => ({ ...prev, route: route.id, routeObj: route }));
+            };
+
+            const handleNext = () => {
+                if (!form.route) { alert('请先选择作业路线'); return; }
+                setStep(2);
+            };
+
+            const handleCreate = () => {
+                const mode = WORK_MODES.find(m => m.id === form.workMode);
+                const activeSubs = [];
+                if (form.subMode && mode) { const s = mode.subModes.find(x => x.id === form.subMode); if (s) activeSubs.push(s.label); }
+                (form.independentModes || []).forEach(id => { const s = mode?.subModes.find(x => x.id === id); if (s) activeSubs.push(s.label); });
+                const status = STATUS_OPTIONS.find(s => s.id === form.jobStatus);
+                const routeColor = form.routeObj?.isDefault === false ? '#FF6B6B' : '#00D4FF';
+                onCreate({
+                    id: 'T' + Date.now(),
+                    name: form.jobName,
+                    mode: mode?.label || form.workMode,
+                    modeSubs: activeSubs.join(' + ') || '-',
+                    vehicle: '鲁B8888',
+                    creator: '李运营',
+                    status: status?.label || form.jobStatus,
+                    progress: 0, startTime: '-', endTime: '-', distance: '0.0', duration: '00:00:00',
+                    sweepCount: form.sweepCount,
+                    lights: Object.entries(form.lights).filter(([, v]) => v).map(([k]) => k === 'workLight' ? '工作灯' : k === 'leftSignal' ? '左转向灯' : '右转向灯').join('、') || '全部关闭',
+                    routes: form.routeObj ? [{ name: form.routeObj.name, color: routeColor }] : [],
+                });
+                onClose();
+            };
+
+            // Sync routeObj when form.route changes
+            const handleFormChange = (newForm) => {
+                const route = routes.find(r => r.id === newForm.route) || null;
+                setForm({ ...newForm, routeObj: route });
+            };
+
+            return (
+                <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="modal-box modal-animate w-full" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0' }}>
+                            <div>
+                                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>{repeatData ? '再次作业' : '新建作业'}</h2>
+                                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>{repeatData ? `基于「${repeatData.name}」创建新作业` : '为环卫机器人配置新的清扫任务'}</p>
+                            </div>
+                            <button className="icon-close" onClick={onClose}><IconX /></button>
+                        </div>
+                        <div className="glow-line" style={{ margin: '14px 20px 0' }} />
+                        <StepIndicator step={step} />
+                        <div className="modal-body" style={{ paddingTop: 4 }}>
+                            {step === 1
+                                ? <Step1 data={form} onChange={handleFormChange} routes={routes} onOpenMap={onOpenMap} />
+                                : <Step2 data={form} onChange={setForm} />
+                            }
+                        </div>
+                        <div style={{ padding: '16px 20px 18px', borderTop: '1px solid #1a3350', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'linear-gradient(to top, #0a1220 60%, transparent)' }}>
+                            {step === 2
+                                ? <button className="btn-ghost" style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={() => setStep(1)}><IconArrowLeft /> 上一步</button>
+                                : <div />
+                            }
+                            <div style={{ display: 'flex', gap: 10 }}>
+                                <button className="btn-ghost" style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={onClose}>取消</button>
+                                {step === 1
+                                    ? <button className="btn-primary" style={{ padding: '8px 18px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={handleNext}>下一步 <IconArrowRight /></button>
+                                    : <button className="btn-primary" style={{ padding: '8px 18px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif', background: 'linear-gradient(135deg, #00a870, #008060)', boxShadow: '0 4px 12px rgba(0,180,100,0.3)' }} onClick={handleCreate}><IconZap /> 创建作业</button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ─── Nav Item ─────────────────────────────────────────────────────────────────
+
+        function NavItem({ label, icon, active, onClick, badge }) {
+            return (
+                <button onClick={onClick}
+                    className={`nav-item w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 text-left ${active ? 'active text-cyan-400 bg-cyan-400/5 border-l-[3px] border-cyan-400' : 'text-gray-400 border-l-[3px] border-transparent'}`}>
+                    {icon}<span className="flex-1">{label}</span>
+                    {badge && (
+                        <span style={{
+                            padding: '1px 6px', borderRadius: 9999, fontSize: 10,
+                            background: badge.color === 'red' ? 'rgba(255,107,107,0.2)' : 'rgba(0,212,255,0.1)',
+                            color: badge.color === 'red' ? '#FF6B6B' : '#00D4FF',
+                            fontFamily: 'Inter, sans-serif', fontWeight: 600,
+                        }}>{badge.text}</span>
+                    )}
+                </button>
+            );
+        }
+
+        // ─── Map management mock data (shared with maps.html) ──────────────────────────
+
+        const DEFAULT_MAP_DATA = {
+            '港口A区': {
+                lidar: [
+                    { id: 'LC001', regionName: '港口A区', version: '1.0.2', uploadTime: '2026-04-10 14:32', uploader: '李运营', desc: '更新堆场C区边界，新增入口辅路数据', fileSize: '128.5 MB', isActive: true, type: 'lidar' },
+                    { id: 'LC002', regionName: '港口A区', version: '1.0.1', uploadTime: '2026-03-28 09:15', uploader: '王调度', desc: '修正北侧道路点云偏移', fileSize: '115.2 MB', isActive: false, type: 'lidar' },
+                    { id: 'LC003', regionName: '港口A区', version: '1.0.0', uploadTime: '2026-03-01 10:00', uploader: '张管理员', desc: '初始版本，覆盖全区域', fileSize: '98.7 MB', isActive: false, type: 'lidar' },
+                ],
+            },
+            '综合楼周边': {
+                lidar: [
+                    { id: 'LC004', regionName: '综合楼周边', version: '1.0.1', uploadTime: '2026-04-08 11:20', uploader: '李运营', desc: '新增停车场区域', fileSize: '45.3 MB', isActive: true, type: 'lidar' },
+                    { id: 'LC005', regionName: '综合楼周边', version: '1.0.0', uploadTime: '2026-03-05 08:30', uploader: '张管理员', desc: '初始建图', fileSize: '38.1 MB', isActive: false, type: 'lidar' },
+                ],
+            },
+            '堆场C区': {
+                lidar: [
+                    { id: 'LC006', regionName: '堆场C区', version: '1.0.0', uploadTime: '2026-04-01 13:00', uploader: '王调度', desc: '初始建图', fileSize: '156.8 MB', isActive: true, type: 'lidar' },
+                ],
+            },
+        };
+
+        // ─── Main App ─────────────────────────────────────────────────────────────────
+
+        // ─── Anomaly files mock data ─────────────────────────────────────────────────
+
+        const ANOMALY_TYPE_MAP = { 1: '碰撞', 2: '紧急制动', 3: 'HMI手动触发', 4: '地图采集' };
+        const ANOMALY_TYPE_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#8b5cf6', 4: '#00D4FF' };
+
+        function getAnomalyFilesForVehicle(vehicle) {
+            // Return mock anomaly files based on vehicle plate
+            const baseFiles = {
+                '鲁B8888': [
+                    { id: 'AF001', desc: '港口A区3号路口异常碰撞事件', uploadTime: '2024-01-15 09:12:30', occurTime: '2024-01-15 09:11:05', duration: '00:01:25', type: 1, size: '156.3 MB' },
+                    { id: 'AF002', desc: '综合楼前紧急制动触发', uploadTime: '2024-01-14 16:45:10', occurTime: '2024-01-14 16:44:50', duration: '00:00:20', type: 2, size: '42.7 MB' },
+                    { id: 'AF003', desc: '驾驶员HMI手动触发采集', uploadTime: '2024-01-13 11:20:00', occurTime: '2024-01-13 11:19:30', duration: '00:05:00', type: 3, size: '310.5 MB' },
+                ],
+                '鲁B9999': [
+                    { id: 'AF005', desc: '港口B区栈桥碰撞记录', uploadTime: '2024-01-15 10:30:00', occurTime: '2024-01-15 10:29:15', duration: '00:00:45', type: 1, size: '89.1 MB' },
+                    { id: 'AF006', desc: '商业街行人穿行紧急制动', uploadTime: '2024-01-14 14:20:00', occurTime: '2024-01-14 14:19:38', duration: '00:00:22', type: 2, size: '38.9 MB' },
+                ],
+                '鲁B6666': [
+                    { id: 'AF007', desc: '综合楼北侧碰撞事件', uploadTime: '2024-01-15 08:45:00', occurTime: '2024-01-15 08:44:32', duration: '00:01:10', type: 1, size: '132.4 MB' },
+                    { id: 'AF009', desc: 'HMI手动触发异常记录', uploadTime: '2024-01-12 15:30:00', occurTime: '2024-01-12 15:29:00', duration: '00:03:00', type: 3, size: '198.6 MB' },
+                ],
+            };
+            return baseFiles[vehicle] || [];
+        }
+
+        // ─── File Modal ────────────────────────────────────────────────────────────────
+
+        function FileModal({ files, vehicle, mapRegions, onLinkMap, onClose }) {
+            const [downloadingId, setDownloadingId] = useState(null);
+
+            const handleDownload = (file) => {
+                setDownloadingId(file.id);
+                setTimeout(() => setDownloadingId(null), 1500);
+            };
+
+            const formatFileSize = (size) => {
+                if (size.includes('GB')) return { value: size.replace(' GB', ''), unit: 'GB', color: '#f59e0b' };
+                if (size.includes('MB')) return { value: size.replace(' MB', ''), unit: 'MB', color: '#00D4FF' };
+                return { value: size, unit: '', color: '#94a3b8' };
+            };
+
+            const getTypeBadge = (type) => {
+                const label = ANOMALY_TYPE_MAP[type] || '未知';
+                const color = ANOMALY_TYPE_COLORS[type] || '#64748b';
+                return { label, color };
+            };
+
+            return (
+                <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" onClick={onClose}>
+                    <div className="modal-box modal-animate w-full" style={{ maxWidth: 900, maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+                            <div>
+                                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>异常数据文件</h3>
+                                <p style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>车辆 {vehicle} · 共 {files.length} 条记录</p>
+                            </div>
+                            <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-white">
+                                <IconX />
+                            </button>
+                        </div>
+                        <div className="glow-line" style={{ margin: '14px 20px 0' }} />
+                        {/* Body */}
+                        <div className="modal-body" style={{ padding: '16px 20px 20px' }}>
+                            {files.length === 0 ? (
+                                <div style={{ textAlign: 'center', padding: '40px 0', color: '#334155', fontSize: 13, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    该车辆暂无异常数据文件
+                                </div>
+                            ) : (
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    <thead>
+                                        <tr style={{ borderBottom: '1px solid #1a3350' }}>
+                                            {['异常描述', '上传时间', '异常发生时间', '采集时长', '类型', '文件大小', '操作'].map(h => (
+                                                <th key={h} style={{ padding: '10px 8px', textAlign: h === '异常描述' ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{h}</th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {files.map(file => {
+                                            const typeInfo = getTypeBadge(file.type);
+                                            const sizeInfo = formatFileSize(file.size);
+                                            return (
+                                                <tr key={file.id} style={{ borderBottom: '1px solid #0f1a2a' }}>
+                                                    <td style={{ padding: '10px 8px', fontSize: 12, color: '#e2e8f0', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.desc}>{file.desc}</td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.uploadTime}</td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.occurTime}</td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#f59e0b', fontWeight: 500, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.duration}</td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                                        <span style={{
+                                                            display: 'inline-block', padding: '2px 8px', borderRadius: 9999, fontSize: 10, fontWeight: 600,
+                                                            background: typeInfo.color + '15', color: typeInfo.color, border: '1px solid ' + typeInfo.color + '30',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>{typeInfo.label}</span>
+                                                    </td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                                        <span style={{ fontSize: 12, fontWeight: 600, color: sizeInfo.color, fontFamily: 'Inter, sans-serif' }}>{sizeInfo.value}</span>
+                                                        <span style={{ fontSize: 10, color: '#475569', fontFamily: 'Inter, sans-serif', marginLeft: 2 }}>{sizeInfo.unit}</span>
+                                                    </td>
+                                                    <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                                            {file.type === 4 && (
+                                                                <button
+                                                                    onClick={() => onLinkMap(file)}
+                                                                    title="关联到点云地图"
+                                                                    style={{
+                                                                        display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6,
+                                                                        fontSize: 11, fontWeight: 500, fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                                                                        background: 'rgba(147,51,234,0.1)', border: '1px solid rgba(147,51,234,0.35)',
+                                                                        color: '#c084fc', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                                                    }}
+                                                                >
+                                                                    <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                                                    </svg>
+                                                                    关联
+                                                                </button>
+                                                            )}
+                                                            <button
+                                                            onClick={() => handleDownload(file)}
+                                                            disabled={downloadingId === file.id}
+                                                            style={{
+                                                                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 6,
+                                                                fontSize: 11, fontWeight: 500, fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                                                                background: downloadingId === file.id ? 'rgba(0,255,136,0.15)' : 'rgba(0,255,136,0.08)',
+                                                                border: '1px solid ' + (downloadingId === file.id ? 'rgba(0,255,136,0.5)' : 'rgba(0,255,136,0.25)'),
+                                                                color: downloadingId === file.id ? '#00FF88' : '#00FF88',
+                                                                transition: 'all 0.15s',
+                                                            }}
+                                                        >
+                                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                                                <polyline points="7 10 12 15 17 10" />
+                                                                <line x1="12" y1="15" x2="12" y2="3" />
+                                                            </svg>
+                                                            {downloadingId === file.id ? '下载中...' : '下载'}
+                                                        </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // ─── Map Link Modal (关联地图采集到点云地图) ──────────────────────────────────
+
+        function MapLinkModal({ file, mapRegions, mapData, onClose, onSave }) {
+            const [regionName, setRegionName] = useState('');
+            const [newRegionName, setNewRegionName] = useState('');
+            const [version, setVersion] = useState('');
+            const [desc, setDesc] = useState(file ? file.desc : '');
+            const [saving, setSaving] = useState(false);
+
+            const existingRegions = Object.keys(mapData);
+            const selectedRegion = regionName === '__new__' ? null : mapData[regionName];
+            const isNewRegion = regionName === '__new__';
+
+            // Auto-generate next version for selected region
+            React.useEffect(() => {
+                if (selectedRegion && selectedRegion.lidar && selectedRegion.lidar.length > 0) {
+                    const versions = selectedRegion.lidar.map(v => v.version).sort().reverse();
+                    const latestVer = versions[0];
+                    const parts = latestVer.split('.');
+                    const nextPatch = parseInt(parts[2] || '0') + 1;
+                    setVersion(`${parts[0]}.${parts[1]}.${nextPatch}`);
+                } else {
+                    setVersion('');
+                }
+            }, [regionName, mapData]);
+
+            const handleSave = async () => {
+                const finalRegion = isNewRegion ? newRegionName.trim() : regionName;
+                if (!finalRegion) { alert('请选择或输入地区名称'); return; }
+                if (!version.trim()) { alert('请输入版本号'); return; }
+                if (isNewRegion && existingRegions.includes(finalRegion)) { alert('该地区已存在，请从下拉列表中选择'); return; }
+
+                setSaving(true);
+                await new Promise(r => setTimeout(r, 1500));
+
+                onSave({
+                    regionName: finalRegion,
+                    version: version.trim(),
+                    desc: desc.trim(),
+                    fileSize: file.size,
+                    uploadTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+                    uploader: '李运营',
+                    isNewRegion,
+                    sourceFile: file,
+                });
+                setSaving(false);
+                onClose();
+            };
+
+            const now = new Date();
+            const pad = n => String(n).padStart(2, '0');
+            const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+            return (
+                <div className="fixed inset-0 modal-overlay flex items-center justify-center z-[60] p-4" onClick={onClose}>
+                    <div className="modal-box modal-animate w-full" style={{ maxWidth: 560, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+                            <div>
+                                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>关联到点云地图</h3>
+                                <p style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>将地图采集数据作为点云地图版本进行管理</p>
+                            </div>
+                            <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-white">
+                                <IconX />
+                            </button>
+                        </div>
+                        <div className="glow-line" style={{ margin: '14px 20px 0', flexShrink: 0 }} />
+
+                        <div style={{ padding: '16px 20px 20px', fontFamily: 'Noto Sans SC, sans-serif', overflowY: 'auto', flex: 1 }}>
+                            {/* Source file info */}
+                            <div style={{
+                                background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10,
+                                padding: '12px 14px', marginBottom: 16,
+                            }}>
+                                <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>源文件信息</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                                    {[
+                                        ['文件描述', file.desc],
+                                        ['上传时间', file.uploadTime],
+                                        ['采集时长', file.duration],
+                                        ['文件大小', file.size],
+                                    ].map(([k, v]) => (
+                                        <div key={k} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                                            <span style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap' }}>{k}:</span>
+                                            <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>{v}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Region selection */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    目标地区 <span style={{ color: '#ef4444' }}>*</span>
+                                </label>
+                                <select value={regionName} onChange={e => setRegionName(e.target.value)}
+                                    style={{
+                                        width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                                        background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                                        fontFamily: 'Noto Sans SC, sans-serif', outline: 'none', cursor: 'pointer',
+                                    }}>
+                                    <option value="">请选择地区</option>
+                                    {existingRegions.map(r => (
+                                        <option key={r} value={r}>{r}（现有 {mapData[r].lidar.length} 个版本）</option>
+                                    ))}
+                                    <option value="__new__">+ 新增地区</option>
+                                </select>
+                                {isNewRegion && (
+                                    <input
+                                        type="text" value={newRegionName} onChange={e => setNewRegionName(e.target.value)}
+                                        placeholder="输入新地区名称" autoFocus
+                                        style={{
+                                            width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                                            background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                                            fontFamily: 'Noto Sans SC, sans-serif', outline: 'none',
+                                            boxSizing: 'border-box',
+                                        }}
+                                    />
+                                )}
+                            </div>
+
+                            {/* Existing versions preview */}
+                            {selectedRegion && selectedRegion.lidar && selectedRegion.lidar.length > 0 && (
+                                <div style={{
+                                    background: '#080f1e', border: '1px solid #1a3350', borderRadius: 8,
+                                    padding: '10px 12px', marginBottom: 14,
+                                }}>
+                                    <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>现有版本</div>
+                                    {selectedRegion.lidar.map((v, i) => (
+                                        <div key={v.id} style={{
+                                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                            padding: '4px 0', borderBottom: i < selectedRegion.lidar.length - 1 ? '1px solid #0f1a2a' : 'none',
+                                        }}>
+                                            <span style={{ fontSize: 11, fontFamily: 'Inter, sans-serif' }}>
+                                                <span style={{ color: '#00D4FF', fontWeight: 600 }}>v{v.version}</span>
+                                                <span style={{ color: '#475569', marginLeft: 8 }}>{v.uploadTime}</span>
+                                            </span>
+                                            {v.isActive && (
+                                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 9999, background: 'rgba(0,255,136,0.1)', color: '#00FF88', fontFamily: 'Inter, sans-serif', border: '1px solid rgba(0,255,136,0.2)' }}>当前</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div style={{ fontSize: 10, color: '#00D4FF', marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
+                                        → 新版本号已自动生成: <span style={{ fontWeight: 700 }}>v{version}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Version */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    版本号 <span style={{ color: '#ef4444' }}>*</span>
+                                </label>
+                                <input
+                                    type="text" value={version} onChange={e => setVersion(e.target.value)}
+                                    placeholder={isNewRegion ? '输入版本号，如 1.0.0' : '自动生成或手动输入'}
+                                    style={{
+                                        width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                                        background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                                        fontFamily: 'Inter, sans-serif', outline: 'none',
+                                        boxSizing: 'border-box',
+                                    }}
+                                />
+                            </div>
+
+                            {/* Description */}
+                            <div style={{ marginBottom: 14 }}>
+                                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                    版本描述
+                                </label>
+                                <textarea
+                                    value={desc} onChange={e => setDesc(e.target.value)}
+                                    placeholder="描述本次地图采集的变更内容" rows={3}
+                                    style={{
+                                        width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                                        background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                                        fontFamily: 'Noto Sans SC, sans-serif', outline: 'none', resize: 'vertical',
+                                        boxSizing: 'border-box',
+                                    }}
+                                />
+                            </div>
+
+                            {/* Preview */}
+                            <div style={{
+                                background: 'rgba(0,212,255,0.03)', border: '1px solid rgba(0,212,255,0.1)', borderRadius: 8,
+                                padding: '10px 12px', marginBottom: 16,
+                            }}>
+                                <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase' }}>新版本预览</div>
+                                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: '20px', fontFamily: 'Inter, sans-serif' }}>
+                                    <div>地区: <span style={{ color: '#00D4FF' }}>{isNewRegion ? (newRegionName || '—') : (regionName || '—')}</span></div>
+                                    <div>版本: <span style={{ color: '#00FF88' }}>v{version || '—'}</span></div>
+                                    <div>大小: <span style={{ color: '#f59e0b' }}>{file.size}</span></div>
+                                    <div>时间: <span style={{ color: '#64748b' }}>{timestamp}</span></div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                <button onClick={onClose}
+                                    style={{
+                                        padding: '8px 18px', borderRadius: 8, fontSize: 12, fontFamily: 'Noto Sans SC, sans-serif',
+                                        background: 'transparent', border: '1px solid #1a3350', color: '#64748b', cursor: 'pointer',
+                                    }}>
+                                    取消
+                                </button>
+                                <button onClick={handleSave} disabled={saving}
+                                    style={{
+                                        padding: '8px 18px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                                        fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                                        background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.4)',
+                                        color: '#c084fc', opacity: saving ? 0.6 : 1,
+                                        display: 'flex', alignItems: 'center', gap: 6,
+                                    }}>
+                                    <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                    </svg>
+                                    {saving ? '保存中...' : '关联并创建版本'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function App() {
+            const [currentPage, setCurrentPage] = useState('tasks');
+            const [sidebarOpen, setSidebarOpen] = useState(true);
+            const [showNewTask, setShowNewTask] = useState(false);
+            const [showRouteBuilder, setShowRouteBuilder] = useState(false);
+            const [routesExpanded, setRoutesExpanded] = useState(false);
+            const [editingRouteData, setEditingRouteData] = useState(null);
+            const [confirmDeleteRoute, setConfirmDeleteRoute] = useState(null);
+            const [inlineEditRoute, setInlineEditRoute] = useState(null);
+            const [inlineEditName, setInlineEditName] = useState('');
+            const [inlineEditDesc, setInlineEditDesc] = useState('');
+            const [currentTime, setCurrentTime] = useState(new Date());
+            const [filter, setFilter] = useState('全部');
+            const [routes, setRoutes] = useState(DEFAULT_ROUTES);
+            const [repeatTaskData, setRepeatTaskData] = useState(null);
+            const [showFileModal, setShowFileModal] = useState(false);
+            const [selectedTaskAnomalyFiles, setSelectedTaskAnomalyFiles] = useState(null);
+            const [mapData, setMapData] = useState(DEFAULT_MAP_DATA);
+            const [showMapLinkModal, setShowMapLinkModal] = useState(false);
+            const [selectedMapLinkFile, setSelectedMapLinkFile] = useState(null);
+            // Search states
+            const [searchName, setSearchName] = useState('');
+            const [searchDateStart, setSearchDateStart] = useState('');
+            const [searchDateEnd, setSearchDateEnd] = useState('');
+            const [searchVehicle, setSearchVehicle] = useState('');
+            const [searchMode, setSearchMode] = useState('');
+            const [searchRoute, setSearchRoute] = useState('');
+
+            const [tasks, setTasks] = useState([
+                { id: 'T001', name: '港口A区洗扫作业', mode: '洗扫模式', modeSubs: '全洗扫 + 中喷杆', vehicle: '鲁B8888', creator: '李运营', status: '标准作业', progress: 65, startTime: '2024-01-15 08:30:00', endTime: '-', distance: '12.8/15.0', duration: '04:23:15', sweepCount: 2, lights: '工作灯', routes: [{ name: '清扫路线一', color: '#00D4FF' }, { name: '高压冲洗路线', color: '#00FF88' }] },
+                { id: 'T002', name: '港口B区清洗作业', mode: '纯洗模式', modeSubs: '全清洗', vehicle: '鲁B9999', creator: '王调度', status: '增强作业', progress: 100, startTime: '2024-01-15 06:00:00', endTime: '2024-01-15 10:15:30', distance: '8.5/15.5', duration: '04:15:30', sweepCount: 1, lights: '工作灯、左转向灯', routes: [{ name: '高压冲洗路线', color: '#00FF88' }] },
+                { id: 'T004', name: '堆场C区增强冲洗', mode: '纯洗模式', modeSubs: '全清洗 + 中喷杆', vehicle: '鲁B8888', creator: '张管理员', status: '增强作业', progress: 0, startTime: '2024-01-16 09:00:00', endTime: '-', distance: '0.0/15.9', duration: '00:00:00', sweepCount: 1, lights: '工作灯、右转向灯', routes: [{ name: '高压冲洗路线', color: '#FF6B6B' }, { name: '清扫路线一', color: '#00D4FF' }, { name: '洗扫路线二', color: '#00FF88' }] },
+                { id: 'T007', name: '码头E区洗扫', mode: '洗扫模式', modeSubs: '全洗扫', vehicle: '鲁B8888', creator: '李运营', status: '标准作业', progress: 55, startTime: '2024-01-14 10:30:00', endTime: '2024-01-14 14:45:00', distance: '9.3/15.9', duration: '04:15:00', sweepCount: 2, lights: '工作灯', routes: [{ name: '清扫路线一', color: '#00D4FF' }] },
+                { id: 'T005', name: '仓库周边清扫', mode: '洗扫模式', modeSubs: '右洗扫', vehicle: '鲁B9999', creator: '李运营', status: '标准作业', progress: 100, startTime: '2024-01-13 14:00:00', endTime: '2024-01-13 17:30:00', distance: '6.2/18.5', duration: '03:30:00', sweepCount: 2, lights: '工作灯', routes: [{ name: '洗扫路线二', color: '#00FF88' }] },
+                { id: 'T003', name: '综合楼周边干扫', mode: '干扫模式', modeSubs: '左干扫', vehicle: '鲁B6666', creator: '李运营', status: '标准作业', progress: 38, startTime: '2024-01-15 09:00:00', endTime: '-', distance: '5.2/18.5', duration: '02:10:45', sweepCount: 3, lights: '全部关闭', routes: [{ name: '洗扫路线二', color: '#00FF88' }] },
+            ]);
+
+            // 从URL参数读取车牌号并设置搜索条件
+            useEffect(() => {
+                const params = new URLSearchParams(window.location.search);
+                const plate = params.get('plate');
+                if (plate) {
+                    setSearchVehicle(decodeURIComponent(plate));
+                }
+            }, []);
+
+            useEffect(() => {
+                const t = setInterval(() => setCurrentTime(new Date()), 1000);
+                return () => clearInterval(t);
+            }, []);
+
+            const createTask = (task) => {
+                setTasks([task, ...tasks]);
+                window.location.href = 'monitoring.html';
+            };
+
+            const addRoute = (route) => {
+                setRoutes(prev => {
+                    const existing = prev.find(r => r.id === route.id);
+                    if (existing) return prev.map(r => r.id === route.id ? route : r);
+                    return [...prev, route];
+                });
+            };
+
+            const handleRouteSaved = (route) => {
+                setRoutes(prev => {
+                    const exists = prev.find(r => r.id === route.id);
+                    if (exists) return prev.map(r => r.id === route.id ? route : r);
+                    return [...prev, route];
+                });
+                setShowRouteBuilder(false);
+                setEditingRouteData(null);
+            };
+
+            const handleOpenBuilderEdit = (route) => {
+                setEditingRouteData(route);
+                setRoutesExpanded(true);
+                setShowRouteBuilder(true);
+            };
+
+            const handleOpenBuilderNew = () => {
+                setEditingRouteData(null);
+                setShowRouteBuilder(true);
+            };
+
+            const handleMapLinkOpen = (file) => {
+                setSelectedMapLinkFile(file);
+                setShowMapLinkModal(true);
+            };
+
+            const handleMapLinkSave = (result) => {
+                setMapData(prev => {
+                    const newData = { ...prev };
+                    if (result.isNewRegion) {
+                        // Create new region entry
+                        newData[result.regionName] = {
+                            lidar: [{
+                                id: 'LC' + String(Date.now()).slice(-6),
+                                regionName: result.regionName,
+                                version: result.version,
+                                uploadTime: result.uploadTime,
+                                uploader: result.uploader,
+                                desc: result.desc,
+                                fileSize: result.fileSize,
+                                isActive: true,
+                                type: 'lidar',
+                                sourceFileId: result.sourceFile.id,
+                            }],
+                            vector: [],
+                        };
+                    } else {
+                        // Add new version to existing region, deactivate old versions
+                        const region = prev[result.regionName];
+                        if (region) {
+                            newData[result.regionName] = {
+                                ...region,
+                                lidar: [
+                                    {
+                                        id: 'LC' + String(Date.now()).slice(-6),
+                                        regionName: result.regionName,
+                                        version: result.version,
+                                        uploadTime: result.uploadTime,
+                                        uploader: result.uploader,
+                                        desc: result.desc,
+                                        fileSize: result.fileSize,
+                                        isActive: true,
+                                        type: 'lidar',
+                                        sourceFileId: result.sourceFile.id,
+                                    },
+                                    ...region.lidar.map(v => ({ ...v, isActive: false })),
+                                ],
+                            };
+                        }
+                    }
+                    return newData;
+                });
+                alert(`点云地图版本 v${result.version} 已成功关联到「${result.regionName}」`);
+            };
+
+            const handleInlineEditStart = (route) => {
+                setInlineEditRoute(route.id);
+                setInlineEditName(route.name);
+                setInlineEditDesc(route.desc || '');
+            };
+
+            const handleInlineEditSave = () => {
+                if (!inlineEditName.trim()) return;
+                setRoutes(prev => prev.map(r =>
+                    r.id === inlineEditRoute ? { ...r, name: inlineEditName, desc: inlineEditDesc, label: `路线 ${inlineEditName}` } : r
+                ));
+                setInlineEditRoute(null);
+            };
+
+            const statusConfig = {
+                '标准作业': { color: 'text-blue-400 bg-blue-400/10 border-blue-400/30', dot: 'bg-blue-400' },
+                '增强作业': { color: 'text-purple-400 bg-purple-400/10 border-purple-400/30', dot: 'bg-purple-400' },
+                '已完成': { color: 'text-green-400 bg-green-400/10 border-green-400/30', dot: 'bg-green-400' },
+                '待开始': { color: 'text-gray-400 bg-gray-400/10 border-gray-400/30', dot: 'bg-gray-400' },
+                '未完成': { color: 'text-orange-400 bg-orange-400/10 border-orange-400/30', dot: 'bg-orange-400' },
+            };
+            const modeColorMap = { '洗扫模式': '#00D4FF', '纯洗模式': '#0ea5e9', '干扫模式': '#f59e0b' };
+
+            const counts = {
+                '全部': tasks.length,
+                '标准作业': tasks.filter(t => t.status === '标准作业').length,
+                '增强作业': tasks.filter(t => t.status === '增强作业').length,
+                '已完成': tasks.filter(t => t.progress === 100).length,
+                '待开始': tasks.filter(t => t.progress === 0).length,
+                '未完成': tasks.filter(t => t.progress > 0 && t.progress < 100 && t.endTime !== '-').length,
+            };
+
+            return (
+                <div className="flex h-screen overflow-hidden">
+                    {/* Sidebar */}
+                    <div className={(sidebarOpen ? 'w-56' : 'w-16') + ' bg-gradient-to-b from-[#0d1a2e] to-[#060b18] border-r border-[#1a3350] flex flex-col transition-all duration-300 flex-shrink-0'}>
+                        <div className="p-4 border-b border-[#1a3350] flex items-center gap-3 min-h-[60px]">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                            </div>
+                            {sidebarOpen && <div className="text-sm font-semibold text-cyan-400 leading-tight">环卫智控<br /><span className="text-gray-500 text-xs font-normal">系统平台</span></div>}
+                        </div>
+                        <nav className="flex-1 py-3 flex flex-col gap-1">
+                            <NavItem label="车辆管理" active={false} onClick={() => window.location.href = 'vehicles.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+                            <NavItem label="作业列表" active={true} onClick={() => { }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
+                            {/*  
+                                <NavItem
+                                label="作业监控"
+                                active={false}
+                                onClick={() => window.location.href = 'monitoring.html'}
+                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+                            />
+                            */}
+                            <NavItem
+                                label="路线配置"
+                                active={false}
+                                onClick={() => window.location.href = 'route-config.html'}
+                                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+                            />
+                            <NavItem label="地图管理" active={false} onClick={() => window.location.href = 'maps.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+                            <NavItem label="prd文档" active={false} onClick={() => window.open('prd.html', '_blank')} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+
+                        </nav>
+                        <div className="p-3 border-t border-[#1a3350]">
+                            <div className="flex items-center gap-3 px-2">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">李</div>
+                                {sidebarOpen && <div><div className="text-sm text-gray-300">李运营</div><div className="text-xs text-gray-500">调度员</div></div>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Main */}
+                    <div className="flex-1 flex flex-col overflow-hidden">
+                        {/* Top bar */}
+                        <div className="h-14 bg-gradient-to-r from-[#0d1a2e] to-[#0a1220] border-b border-[#1a3350] flex items-center justify-between px-5 flex-shrink-0">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition-colors p-1">
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                                </button>
+                                <div className="text-base font-semibold text-white glow-cyan tracking-wide">作业列表</div>
+                                <span className="text-xs text-gray-500">{currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-sm">
+                                <span className="text-gray-500 font-mono">{currentTime.toLocaleTimeString('en-GB')}</span>
+                                <button
+                                    onClick={() => setShowNewTask(true)}
+                                    className="px-4 py-1.5 rounded text-white text-xs font-medium btn-primary flex items-center gap-1.5">
+                                    <IconPlus />
+                                    新建作业
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 p-5 overflow-auto">
+                            {/* Route Management Section */}
+                            <div style={{ marginBottom: 16, display: 'none' }}>
+                                {/* Header row */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: routesExpanded ? 12 : 10 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span style={{ fontSize: 12, color: '#475569', fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                            <IconRoute /> 路线管理
+                                        </span>
+                                        <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 9999, background: 'rgba(0,212,255,0.1)', color: '#00D4FF', fontFamily: 'Inter, sans-serif' }}>
+                                            {routes.length}
+                                        </span>
+                                        {routes.filter(r => r.isDefault === false).length > 0 && (
+                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 9999, background: 'rgba(255,107,107,0.1)', color: '#FF6B6B', fontFamily: 'Inter, sans-serif' }}>
+                                                自定义 {routes.filter(r => r.isDefault === false).length}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                        <button onClick={handleOpenBuilderNew}
+                                            style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, background: 'rgba(0,212,255,0.1)', border: '1.5px solid #00D4FF', color: '#00D4FF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', transition: 'all 0.15s' }}>
+                                            <IconPlus /> 新建路线
+                                        </button>
+                                        <button onClick={() => setRoutesExpanded(v => !v)}
+                                            style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, background: routesExpanded ? 'rgba(0,212,255,0.1)' : 'transparent', border: '1.5px solid ' + (routesExpanded ? '#00D4FF' : '#1a3350'), color: routesExpanded ? '#00D4FF' : '#64748b', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif', transition: 'all 0.15s' }}>
+                                            {routesExpanded ? '收起 ▲' : '展开详情 ▼'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Compact pills row */}
+                                {!routesExpanded && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {routes.map(r => (
+                                            <div key={r.id} style={{
+                                                display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 9999, fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif', fontWeight: 500,
+                                                background: r.isDefault === false ? 'rgba(255,107,107,0.1)' : '#080f1e',
+                                                border: '1px solid ' + (r.isDefault === false ? 'rgba(255,107,107,0.3)' : '#1a3350'),
+                                                color: r.isDefault === false ? '#FF6B6B' : '#64748b',
+                                                transition: 'all 0.15s',
+                                            }}>
+                                                <span>{r.name || r.label}</span>
+                                                <span style={{ fontSize: 10, color: '#475569' }}>{r.dist}</span>
+                                                {r.isDefault === false && (
+                                                    <button onClick={() => handleOpenBuilderEdit(r)} title="编辑路线" style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex', opacity: 0.6 }}>
+                                                        <IconEdit />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {routes.length === 0 && (
+                                            <span style={{ fontSize: 11, color: '#334155', fontFamily: 'Noto Sans SC, sans-serif' }}>暂无路线，点击右上角「新建路线」创建</span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Expanded route cards */}
+                                {routesExpanded && (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
+                                        {routes.map(route => (
+                                            <div key={route.id} style={{
+                                                background: '#080f1e', border: '1px solid ' + (route.isDefault === false ? 'rgba(255,107,107,0.2)' : '#1a3350'),
+                                                borderRadius: 12, padding: '14px 16px', transition: 'all 0.15s',
+                                            }}>
+                                                {/* Route header */}
+                                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+                                                    <div style={{
+                                                        width: 8, minHeight: 40, borderRadius: 4, flexShrink: 0,
+                                                        background: route.isDefault === false ? 'linear-gradient(180deg, #FF6B6B, #ff9999)' : 'linear-gradient(180deg, #00D4FF, #0066FF)',
+                                                        marginTop: 2,
+                                                    }} />
+                                                    {inlineEditRoute === route.id ? (
+                                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                                            <input type="text" className="input-base" value={inlineEditName} onChange={e => setInlineEditName(e.target.value)} placeholder="路线名称" style={{ fontSize: 13, fontWeight: 600 }} autoFocus />
+                                                            <textarea className="input-base" value={inlineEditDesc} onChange={e => setInlineEditDesc(e.target.value)} placeholder="路线描述（选填）" rows={2} style={{ resize: 'none', fontSize: 12 }} />
+                                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                                <button onClick={handleInlineEditSave} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, background: 'rgba(0,212,255,0.15)', border: '1.5px solid #00D4FF', color: '#00D4FF', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>保存</button>
+                                                                <button onClick={() => setInlineEditRoute(null)} style={{ padding: '4px 10px', borderRadius: 7, fontSize: 11, background: 'transparent', border: '1.5px solid #1a3350', color: '#64748b', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>取消</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ flex: 1, overflow: 'hidden' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                                                                <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{route.name || route.label}</span>
+                                                                {route.isDefault === false && <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 9999, background: 'rgba(255,107,107,0.1)', color: '#FF6B6B', border: '1px solid rgba(255,107,107,0.3)', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>自定义</span>}
+                                                            </div>
+                                                            {route.desc && <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif', marginBottom: 3 }}>{route.desc}</div>}
+                                                            <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                                                                <span style={{ color: '#00D4FF', fontWeight: 600 }}>{route.dist}</span> · {route.time}
+                                                                {route.waypoints && <span style={{ marginLeft: 8, color: '#00FF88' }}>{route.waypoints.length} 途经点</span>}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                    {inlineEditRoute !== route.id && (
+                                                        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                                                            <button onClick={() => handleOpenBuilderEdit(route)} title="地图编辑" style={{ background: 'transparent', border: '1px solid #1a3350', borderRadius: 7, color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', fontSize: 11, transition: 'all 0.1s' }}
+                                                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#00D4FF'; e.currentTarget.style.color = '#00D4FF'; }}
+                                                                onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a3350'; e.currentTarget.style.color = '#64748b'; }}>
+                                                                <IconMapPin /> 地图
+                                                            </button>
+                                                            {route.isDefault === false && (
+                                                                <>
+                                                                    <button onClick={() => handleInlineEditStart(route)} title="编辑信息" style={{ background: 'transparent', border: '1px solid #1a3350', borderRadius: 7, color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', fontSize: 11, transition: 'all 0.1s' }}
+                                                                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#00D4FF'; e.currentTarget.style.color = '#00D4FF'; }}
+                                                                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a3350'; e.currentTarget.style.color = '#64748b'; }}>
+                                                                        <IconEdit /> 编辑
+                                                                    </button>
+                                                                    {confirmDeleteRoute === route.id ? (
+                                                                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                                                            <button onClick={() => { setRoutes(prev => prev.filter(r => r.id !== route.id)); setConfirmDeleteRoute(null); }} style={{ padding: '4px 8px', borderRadius: 7, fontSize: 11, background: 'rgba(239,68,68,0.15)', border: '1.5px solid #ef4444', color: '#ef4444', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>删除</button>
+                                                                            <button onClick={() => setConfirmDeleteRoute(null)} style={{ padding: '4px 8px', borderRadius: 7, fontSize: 11, background: 'transparent', border: '1.5px solid #1a3350', color: '#64748b', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>取消</button>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <button onClick={() => setConfirmDeleteRoute(route.id)} title="删除路线" style={{ background: 'transparent', border: '1px solid #1a3350', borderRadius: 7, color: '#64748b', cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif', fontSize: 11, transition: 'all 0.1s' }}
+                                                                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.color = '#ef4444'; }}
+                                                                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#1a3350'; e.currentTarget.style.color = '#64748b'; }}>
+                                                                            <IconTrash />
+                                                                        </button>
+                                                                    )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                {/* Waypoint chips */}
+                                                {route.waypoints && route.waypoints.length > 0 && (
+                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, paddingTop: 8, borderTop: '1px solid #1a3350' }}>
+                                                        {route.waypoints.map((wp, i) => (
+                                                            <div key={i} style={{
+                                                                display: 'flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 9999,
+                                                                background: '#0a1220', border: '1px solid #1a3350', fontSize: 11,
+                                                                fontFamily: 'Noto Sans SC, sans-serif', color: '#94a3b8',
+                                                            }}>
+                                                                <span style={{ width: 14, height: 14, borderRadius: '50%', background: '#00D4FF', color: '#060b18', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', flexShrink: 0 }}>{i + 1}</span>
+                                                                {wp.label || `途经点 ${i + 1}`}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                        {routes.length === 0 && (
+                                            <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '32px 0', color: '#334155', fontFamily: 'Noto Sans SC, sans-serif', fontSize: 13 }}>暂无路线，点击右上角「新建路线」创建第一条路线</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Filter Tabs */}
+                            <div className="flex gap-2 mb-4">
+                                {['全部', '待开始', '未完成', '标准作业', '增强作业', '已完成'].map(f => (
+                                    <button key={f} onClick={() => setFilter(f)}
+                                        className={"px-4 py-2 rounded-lg text-xs font-medium transition-all " + (
+                                            filter === f
+                                                ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/30'
+                                                : 'text-gray-400 hover:text-white border border-transparent'
+                                        )}>
+                                        {f} ({counts[f] || 0})
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Search Bar */}
+                            <div style={{ background: 'linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%)', border: '1px solid #1a3350', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                    <svg width="14" height="14" fill="none" stroke="#00D4FF" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                    <span style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif' }}>作业搜索</span>
+                                    {(searchName || searchDateStart || searchDateEnd || searchVehicle || searchMode || searchRoute) && (
+                                        <button onClick={() => { setSearchName(''); setSearchDateStart(''); setSearchDateEnd(''); setSearchVehicle(''); setSearchMode(''); setSearchRoute(''); }}
+                                            style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                                            清除筛选
+                                        </button>
+                                    )}
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+                                    <div>
+                                        <label style={{ fontSize: 11, color: '#475569', display: 'block', marginBottom: 4, fontFamily: 'Noto Sans SC, sans-serif' }}>作业名称</label>
+                                        <input type="text" className="input-base" value={searchName} onChange={e => setSearchName(e.target.value)} placeholder="输入名称搜索" style={{ fontSize: 12 }} />
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: 11, color: '#475569', display: 'block', marginBottom: 4, fontFamily: 'Noto Sans SC, sans-serif' }}>作业日期</label>
+                                        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                                            <input type="date" className="input-base" value={searchDateStart} onChange={e => setSearchDateStart(e.target.value)} style={{ fontSize: 11, padding: '7px 8px' }} />
+                                            <span style={{ color: '#475569', fontSize: 11 }}>至</span>
+                                            <input type="date" className="input-base" value={searchDateEnd} onChange={e => setSearchDateEnd(e.target.value)} style={{ fontSize: 11, padding: '7px 8px' }} />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: 11, color: '#475569', display: 'block', marginBottom: 4, fontFamily: 'Noto Sans SC, sans-serif' }}>作业车辆</label>
+                                        <select className="select-base" value={searchVehicle} onChange={e => setSearchVehicle(e.target.value)} style={{ fontSize: 12 }}>
+                                            <option value="">全部车辆</option>
+                                            {[...new Set(tasks.map(t => t.vehicle))].map(v => <option key={v} value={v}>{v}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: 11, color: '#475569', display: 'block', marginBottom: 4, fontFamily: 'Noto Sans SC, sans-serif' }}>工作模式</label>
+                                        <select className="select-base" value={searchMode} onChange={e => setSearchMode(e.target.value)} style={{ fontSize: 12 }}>
+                                            <option value="">全部模式</option>
+                                            {[...new Set(tasks.map(t => t.mode))].map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontSize: 11, color: '#475569', display: 'block', marginBottom: 4, fontFamily: 'Noto Sans SC, sans-serif' }}>作业路线</label>
+                                        <select className="select-base" value={searchRoute} onChange={e => setSearchRoute(e.target.value)} style={{ fontSize: 12 }}>
+                                            <option value="">全部路线</option>
+                                            {[...new Set(tasks.filter(t => t.routes).flatMap(t => t.routes.map(r => r.name)))].map(r => <option key={r} value={r}>{r}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Task Table */}
+                            <div style={{ background: 'linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%)', border: '1px solid #1a3350', borderRadius: 12, overflow: 'hidden' }}>
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Noto Sans SC, sans-serif', tableLayout: 'fixed' }}>
+                                        <colgroup>
+                                            <col style={{ width: '75px' }} />
+                                            <col style={{ width: '100px' }} />
+                                            <col style={{ width: '70px' }} />
+                                            <col style={{ width: '70px' }} />
+                                            <col style={{ width: '70px' }} />
+                                            <col style={{ width: '60px' }} />
+                                            <col style={{ width: '85px' }} />
+                                            <col style={{ width: '70px' }} />
+                                            <col style={{ width: '70px' }} />
+                                            <col style={{ width: '72px' }} />
+                                            <col style={{ width: '100px' }} />
+                                            <col style={{ width: '100px' }} />
+                                        </colgroup>
+                                        <thead>
+                                            <tr style={{ background: 'rgba(0,212,255,0.04)', borderBottom: '1px solid #1a3350' }}>
+                                                <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>作业状态</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>作业名称</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>工作模式</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>作业车辆</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>作业路线</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>清扫次数</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>作业模式</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>开始时间</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>结束时间</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>已耗时</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>进度</th>
+                                                <th style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tasks
+                                                .filter(t => {
+                                                    if (filter === '已完成') return t.progress === 100;
+                                                    if (filter === '待开始') return t.progress === 0;
+                                                    if (filter === '未完成') return t.progress > 0 && t.progress < 100 && t.endTime !== '-';
+                                                    if (filter !== '全部') return t.status === filter;
+                                                    return true;
+                                                })
+                                                .filter(t => !searchName || t.name.toLowerCase().includes(searchName.toLowerCase()))
+                                                .filter(t => {
+                                                    if (!searchDateStart && !searchDateEnd) return true;
+                                                    if (t.startTime === '-') return false;
+                                                    const taskDate = t.startTime.split(' ')[0];
+                                                    if (searchDateStart && searchDateEnd) {
+                                                        return taskDate >= searchDateStart && taskDate <= searchDateEnd;
+                                                    } else if (searchDateStart) {
+                                                        return taskDate >= searchDateStart;
+                                                    } else if (searchDateEnd) {
+                                                        return taskDate <= searchDateEnd;
+                                                    }
+                                                    return true;
+                                                })
+                                                .filter(t => !searchVehicle || t.vehicle === searchVehicle)
+                                                .filter(t => !searchMode || t.mode === searchMode)
+                                                .filter(t => !searchRoute || (t.routes && t.routes.some(r => r.name === searchRoute)))
+                                                .map((task, idx) => {
+                                                    const sc = statusConfig[task.status] || statusConfig['已完成'];
+                                                    const mc = modeColorMap[task.mode] || '#64748b';
+                                                    return (
+                                                        <tr key={task.id} style={{ borderBottom: idx < tasks.length - 1 ? '1px solid #1a3350' : 'none', transition: 'background 0.15s' }}
+                                                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,212,255,0.04)'}
+                                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                                            <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                                                {task.progress === 100 ? (
+                                                                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,255,136,0.12)', color: '#00FF88', border: '1px solid rgba(0,255,136,0.3)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00FF88', flexShrink: 0 }}></span>
+                                                                        已完成
+                                                                    </span>
+                                                                ) : task.progress === 0 ? (
+                                                                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(156,163,175,0.12)', color: '#9ca3af', border: '1px solid rgba(156,163,175,0.3)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#9ca3af', flexShrink: 0 }}></span>
+                                                                        待开始
+                                                                    </span>
+                                                                ) : task.progress > 0 && task.progress < 100 && task.endTime !== '-' ? (
+                                                                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(251,146,60,0.12)', color: '#fb9224', border: '1px solid rgba(251,146,60,0.3)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#fb9224', flexShrink: 0 }}></span>
+                                                                        未完成
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: 'rgba(0,212,255,0.12)', color: '#00D4FF', border: '1px solid rgba(0,212,255,0.3)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 3, whiteSpace: 'nowrap' }}>
+                                                                        <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00D4FF', animation: 'pulse 2s infinite', flexShrink: 0 }}></span>
+                                                                        作业中
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', verticalAlign: 'middle', overflow: 'hidden' }}>
+                                                                <div style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textDecoration: 'underline', textUnderlineOffset: 2, cursor: 'pointer' }} onClick={() => window.location.href = 'monitoring.html?vehicle=' + encodeURIComponent(task.vehicle)}>{task.name}</div>
+                                                                {task.modeSubs && task.modeSubs !== '-' && <div style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.modeSubs}</div>}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
+                                                                <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: `${mc}15`, color: mc, border: `1px solid ${mc}35`, fontWeight: 500, whiteSpace: 'nowrap' }}>{task.mode}</span>
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', fontSize: 11, color: '#94a3b8', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{task.vehicle}</td>
+                                                            <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
+                                                                {task.routes && task.routes.length > 0 ? (
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                                                                        {task.routes.map((r, ri) => (
+                                                                            <span key={ri} style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: `${r.color}15`, color: r.color, border: `1px solid ${r.color}35`, whiteSpace: 'nowrap' }}>
+                                                                                {r.name}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span style={{ fontSize: 11, color: '#334155' }}>-</span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>{task.sweepCount}次</td>
+
+                                                            <td style={{ padding: '10px 8px', verticalAlign: 'middle' }}>
+                                                                {task.status === '增强作业' ? (
+                                                                    <span style={{
+                                                                        fontSize: 10,
+                                                                        padding: '2px 6px',
+                                                                        borderRadius: 4,
+                                                                        background: 'rgba(251,191,36,0.15)',
+                                                                        color: '#fbbf24',
+                                                                        border: '1px solid #fbbf24',
+                                                                        fontWeight: 500,
+                                                                        whiteSpace: 'nowrap',
+                                                                        boxShadow: '0 0 8px rgba(251,191,36,0.3)'
+                                                                    }}>
+                                                                        {task.status}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span style={{ fontSize: 10, padding: '2px 6px', borderRadius: 4, background: sc.color.split(' ')[1], color: sc.color.split(' ')[0], border: '1px solid', whiteSpace: 'nowrap' }}>
+                                                                        {task.status}
+                                                                    </span>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                                {task.startTime === '-' ? '-' : (
+                                                                    <div style={{ lineHeight: '18px' }}>
+                                                                        <div style={{ color: '#64748b', fontSize: 10 }}>{task.startTime.split(' ')[0]}</div>
+                                                                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>{task.startTime.split(' ')[1]}</div>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                                {task.endTime === '-' ? '-' : (
+                                                                    <div style={{ lineHeight: '18px' }}>
+                                                                        <div style={{ color: '#64748b', fontSize: 10 }}>{task.endTime.split(' ')[0]}</div>
+                                                                        <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>{task.endTime.split(' ')[1]}</div>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, fontFamily: 'Inter, sans-serif', color: '#f59e0b', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                                                {task.duration}
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                                                                    <div style={{ width: 50, height: 3, background: '#1a3350', borderRadius: 2, overflow: 'hidden', flexShrink: 0 }}>
+                                                                        <div style={{ width: task.progress + '%', height: '100%', background: task.progress === 100 ? '#00FF88' : 'linear-gradient(90deg, #00D4FF, #00FF88)', borderRadius: 2, transition: 'width 0.3s' }}></div>
+                                                                    </div>
+                                                                    <span style={{ fontSize: 10, color: task.progress === 100 ? '#00FF88' : '#00D4FF', fontWeight: 600, whiteSpace: 'nowrap' }}>{task.progress}%</span>
+                                                                </div>
+                                                            </td>
+                                                            <td style={{ padding: '10px 8px', textAlign: 'center', verticalAlign: 'middle' }}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                                                                    <button onClick={() => window.location.href = 'monitoring.html?vehicle=' + encodeURIComponent(task.vehicle)} title="查看详情" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 5, background: 'rgba(0,212,255,0.1)', border: '1px solid rgba(0,212,255,0.3)', color: '#00D4FF', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,212,255,0.2)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,212,255,0.1)'; }}>
+                                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                                    </button>
+                                                                    {(task.progress === 100 || (task.endTime !== '-' && task.progress < 100)) && (
+                                                                        <button onClick={() => { setShowNewTask(true); setRepeatTaskData(task); }} title="再次作业" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 5, background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', color: '#a855f7', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.2)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(139,92,246,0.1)'; }}>
+                                                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                                                        </button>
+                                                                    )}
+                                                                    <button onClick={() => { const files = getAnomalyFilesForVehicle(task.vehicle); setSelectedTaskAnomalyFiles({ files, vehicle: task.vehicle }); setShowFileModal(true); }} title="异常文件" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 5, background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', color: '#f59e0b', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.2)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(245,158,11,0.1)'; }}>
+                                                                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
+                                                                    </button>
+                                                                    {task.endTime !== '-' && (
+                                                                        <button onClick={() => { if (confirm('确定要删除作业「' + task.name + '」吗？')) { setTasks(prev => prev.filter(t => t.id !== task.id)); } }} title="删除" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, borderRadius: 5, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', cursor: 'pointer', transition: 'all 0.15s' }} onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }} onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}>
+                                                                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                        </tbody>
+                                    </table>
+                                    {tasks.filter(t => {
+                                        if (filter === '已完成') return t.progress === 100;
+                                        if (filter === '待开始') return t.progress === 0;
+                                        if (filter === '未完成') return t.progress > 0 && t.progress < 100 && t.endTime !== '-';
+                                        if (filter !== '全部') return t.status === filter;
+                                        return true;
+                                    }).filter(t => !searchName || t.name.toLowerCase().includes(searchName.toLowerCase()))
+                                        .filter(t => {
+                                            if (!searchDateStart && !searchDateEnd) return true;
+                                            if (t.startTime === '-') return false;
+                                            const taskDate = t.startTime.split(' ')[0];
+                                            if (searchDateStart && searchDateEnd) {
+                                                return taskDate >= searchDateStart && taskDate <= searchDateEnd;
+                                            } else if (searchDateStart) {
+                                                return taskDate >= searchDateStart;
+                                            } else if (searchDateEnd) {
+                                                return taskDate <= searchDateEnd;
+                                            }
+                                            return true;
+                                        })
+                                        .filter(t => !searchVehicle || t.vehicle === searchVehicle)
+                                        .filter(t => !searchMode || t.mode === searchMode)
+                                        .filter(t => !searchRoute || (t.routes && t.routes.some(r => r.name === searchRoute))).length === 0 && (
+                                            <div style={{ padding: '40px 0', textAlign: 'center', color: '#334155', fontSize: 13 }}>
+                                                未找到匹配的作业记录
+                                            </div>
+                                        )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {showNewTask && (
+                        <NewTaskModal
+                            onClose={() => { setShowNewTask(false); setRepeatTaskData(null); }}
+                            onCreate={createTask}
+                            routes={routes}
+                            onOpenMap={() => { setShowNewTask(false); setShowRouteBuilder(true); }}
+                            repeatData={repeatTaskData}
+                        />
+                    )}
+                    {showRouteBuilder && (
+                        <RouteBuilderMap
+                            onSave={handleRouteSaved}
+                            onClose={() => { setShowRouteBuilder(false); setEditingRouteData(null); }}
+                            initialRoute={editingRouteData}
+                        />
+                    )}
+                    {showFileModal && selectedTaskAnomalyFiles && (
+                        <FileModal
+                            files={selectedTaskAnomalyFiles.files}
+                            vehicle={selectedTaskAnomalyFiles.vehicle}
+                            mapRegions={Object.keys(mapData)}
+                            onLinkMap={handleMapLinkOpen}
+                            onClose={() => { setShowFileModal(false); setSelectedTaskAnomalyFiles(null); }}
+                        />
+                    )}
+                    {showMapLinkModal && selectedMapLinkFile && (
+                        <MapLinkModal
+                            file={selectedMapLinkFile}
+                            mapRegions={Object.keys(mapData)}
+                            mapData={mapData}
+                            onClose={() => { setShowMapLinkModal(false); setSelectedMapLinkFile(null); }}
+                            onSave={handleMapLinkSave}
+                        />
+                    )}
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+
+</html>

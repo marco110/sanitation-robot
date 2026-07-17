@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>港口自驾平台-PRD</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 2rem;
+      background-color: #ffffff;
+    }
+
+    body {
+      background-color: #fafafa;
+    }
+
+    .prose {
+      max-width: none;
+      line-height: 1.8;
+      font-size: 1rem;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #18181b;
+    }
+
+    .prose h1 {
+      font-weight: 700;
+      font-size: 2.25rem;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 3px solid #6366f1;
+      color: #18181b;
+    }
+
+    .prose h2 {
+      font-weight: 600;
+      font-size: 1.625rem;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e4e4e7;
+      color: #18181b;
+      position: relative;
+    }
+
+    .prose h2::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: linear-gradient(90deg, #6366f1 0%, transparent 100%);
+    }
+
+    .prose h3 {
+      font-weight: 600;
+      font-size: 1.375rem;
+      margin-top: 1.75rem;
+      margin-bottom: 0.75rem;
+      color: #18181b;
+    }
+
+    .prose h4 {
+      font-weight: 600;
+      font-size: 1.125rem;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      color: #18181b;
+    }
+
+    .prose p {
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      color: #18181b;
+    }
+
+    .prose a {
+      color: #6366f1;
+      text-decoration: none;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      padding-bottom: 1px;
+    }
+
+    .prose a:hover {
+      border-bottom-color: #6366f1;
+    }
+
+    .prose strong {
+      font-weight: 600;
+      color: #18181b;
+    }
+
+    .prose code {
+      background: #f4f4f5;
+      color: #6366f1;
+      padding: 0.25em 0.5em;
+      border-radius: 0.375rem;
+      font-size: 0.875em;
+      font-family: ui-monospace, monospace;
+      border: 1px solid #e4e4e7;
+    }
+
+    .prose pre {
+      background: linear-gradient(135deg, #1e1e2e 0%, #2d2d3f 100%);
+      padding: 1.25rem;
+      border-radius: 0.75rem;
+      overflow-x: auto;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      border: 1px solid #3f3f46;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .prose pre code {
+      background-color: transparent;
+      color: #e4e4e7;
+      padding: 0;
+      border: none;
+      font-size: 0.875rem;
+      line-height: 1.7;
+    }
+
+    .prose blockquote {
+      border-left: 4px solid #6366f1;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      background: #f4f4f5;
+      border-radius: 0 0.75rem 0.75rem 0;
+      font-style: normal;
+      position: relative;
+    }
+
+    .prose blockquote::before {
+      content: '"';
+      position: absolute;
+      top: -10px;
+      left: 10px;
+      font-size: 3rem;
+      color: #6366f1;
+      opacity: 0.3;
+      font-family: Georgia, serif;
+    }
+
+    .prose blockquote p {
+      margin: 0;
+      color: #71717a;
+    }
+
+    .prose ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+    }
+
+    .prose ul li {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding-left: 1.75rem;
+      position: relative;
+      color: #18181b;
+    }
+
+    .prose ul li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.6em;
+      width: 8px;
+      height: 8px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 50%;
+    }
+
+    .prose ol {
+      list-style-type: none;
+      padding-left: 0;
+      margin-top: 0;
+      margin-bottom: 1.25rem;
+      counter-reset: ol-counter;
+    }
+
+    .prose ol li {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding-left: 2.5rem;
+      position: relative;
+      counter-increment: ol-counter;
+      color: #18181b;
+    }
+
+    .prose ol li::before {
+      content: counter(ol-counter);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      border-radius: 50%;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .prose table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-size: 0.9375rem;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      border: 1px solid #e4e4e7;
+    }
+
+    .prose th,
+    .prose td {
+      border: none;
+      padding: 1rem 1.25rem;
+      text-align: left;
+    }
+
+    .prose th {
+      background: #f4f4f5;
+      font-weight: 600;
+      color: #18181b;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    .prose td {
+      border-bottom: 1px solid #e4e4e7;
+      color: #18181b;
+    }
+
+    .prose tr:last-child td {
+      border-bottom: none;
+    }
+
+    .prose tr:hover td {
+      background-color: #f4f4f5;
+    }
+
+    .prose hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, transparent 0%, #6366f1 50%, transparent 100%);
+      margin: 2rem 0;
+    }
+
+    .prose img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 1rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .prose del {
+      color: #71717a;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="prose">
+    <h1>港口自驾平台 - 产品需求文档 (PRD)</h1>
+    <blockquote>
+      <p><strong>版本</strong>: v1.2<br><strong>更新日期</strong>: 2026-07-09<br><strong>文档状态</strong>: 已更新（新增地图下发车辆选择、矢量地图服务地址配置）</p>
+    </blockquote>
+    <hr>
+    <h2>一、项目概述</h2>
+    <h3>1.1 项目背景</h3>
+    <p>港口自驾平台是一套面向港口、园区等封闭场景的无人驾驶环卫车辆综合管理平台。系统实现对环卫车辆的接入管理、作业任务规划与调度、实时作业监控、行驶路线配置以及底层地图数据管理等功能，帮助运营人员高效管理和调度环卫作业车辆。</p>
+    <h3>1.2 目标用户</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>角色</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>运营管理员</td>
+          <td>负责车辆管理、作业任务创建与分配、实时监控作业进度、路线配置、停车点管理、地图数据维护</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>1.3 系统架构</h3>
+    <p>平台基于现有环卫平台进行开发，在现有平台上通过添加菜单进行管理，新菜单命名为<strong>"自动驾驶作业管理"</strong>，下拉菜单共包含 <strong>5 个功能模块</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>模块</th>
+          <th>文件</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>车辆管理</td>
+          <td><code>vehicles.html</code></td>
+          <td>基于现有环卫平台车辆进行车辆接入、信息查看、快速新建作业</td>
+        </tr>
+        <tr>
+          <td>作业列表</td>
+          <td><code>tasks.html</code></td>
+          <td>作业任务管理、任务创建与查看</td>
+        </tr>
+        <tr>
+          <td>作业监控</td>
+          <td><code>monitoring.html</code></td>
+          <td>实时车辆位置追踪、车辆控制、视频监控</td>
+        </tr>
+        <tr>
+          <td>路线配置</td>
+          <td><code>route-config.html</code></td>
+          <td>作业路线编辑、停车点管理</td>
+        </tr>
+        <tr>
+          <td>地图管理</td>
+          <td><code>maps.html</code></td>
+          <td>点云/矢量地图上传、下载与版本管理</td>
+        </tr>
+      </tbody>
+    </table>
+    <hr>
+    <h2>二、全局设计规范</h2>
+    <h3>2.1 布局结构</h3>
+    <p>所有页面采用统一布局：</p>
+    <ul>
+      <li><strong>同环卫平台现有页面布局一致</strong></li>
+    </ul>
+    <h3>2.2 导航菜单（母菜单：自动驾驶作业管理）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>子菜单项</th>
+          <th>图标</th>
+          <th>链接</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>车辆管理</td>
+          <td>车辆图标</td>
+          <td><code>vehicles.html</code></td>
+        </tr>
+        <tr>
+          <td>作业列表</td>
+          <td>清单图标</td>
+          <td><code>tasks.html</code></td>
+        </tr>
+        <tr>
+          <td>路线配置</td>
+          <td>地图图标</td>
+          <td><code>route-config.html</code></td>
+        </tr>
+        <tr>
+          <td>地图管理</td>
+          <td>地图图标</td>
+          <td><code>maps.html</code></td>
+        </tr>
+      </tbody>
+    </table>
+    <blockquote>
+      <p>注：作业监控页面通过作业列表或车辆管理页面的操作入口跳转进入，不在主导航中直接展示。</p>
+    </blockquote>
+    <hr>
+    <h2>三、功能模块详细说明</h2>
+    <h3>3.1 车辆管理 (<code>vehicles.html</code>)</h3>
+    <h4>3.1.1 页面描述</h4>
+    <p>车辆管理模块用于管理当前角色所在组织的接入自动驾驶系统的环卫车辆，支持车辆接入（数据源来自当前环卫平台）、基本信息查看、快速创建作业、车辆删除等操作。</p>
+    <h4>3.1.2 数据模型</h4>
+    <p><strong>车辆字段，数据源自环卫平台</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>字段名</th>
+          <th>类型</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>车牌号</td>
+          <td>string</td>
+          <td>车辆车牌号，如鲁B12345</td>
+        </tr>
+        <tr>
+          <td>VIN码</td>
+          <td>string</td>
+          <td>车辆识别码（唯一标识）</td>
+        </tr>
+        <tr>
+          <td>作业类型</td>
+          <td>string</td>
+          <td>车辆作业类型（清扫作业/洒水作业/清运作业）</td>
+        </tr>
+        <tr>
+          <td>车辆大类</td>
+          <td>string</td>
+          <td>环卫车辆大类（洗扫车/洒水车/压缩车）</td>
+        </tr>
+        <tr>
+          <td>车辆小类</td>
+          <td>string</td>
+          <td>环卫车辆小类（3吨洗扫车/5方洒水车/7方压缩车）</td>
+        </tr>
+        <tr>
+          <td>车辆型号</td>
+          <td>string</td>
+          <td>环卫车辆型号（飞碟 WA55/飞碟 D9/飞碟 ZLJ/飞碟 T8）</td>
+        </tr>
+        <tr>
+          <td>总质量</td>
+          <td>string</td>
+          <td>车辆总质量（kg）</td>
+        </tr>
+        <tr>
+          <td>车辆状态</td>
+          <td>enum</td>
+          <td>车辆状态：作业中/在线/离线</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>车辆状态枚举</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>状态</th>
+          <th>颜色标识</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>作业中</td>
+          <td>绿色</td>
+          <td>车辆正在执行作业任务</td>
+        </tr>
+        <tr>
+          <td>在线</td>
+          <td>黄色</td>
+          <td>车辆已接入但未执行作业</td>
+        </tr>
+        <tr>
+          <td>离线</td>
+          <td>灰色</td>
+          <td>车辆未连接</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>3.1.3 功能清单</h4>
+    <h5>(1) 状态筛选</h5>
+    <ul>
+      <li>提供筛选标签：全部、作业中、在线、离线</li>
+      <li>每个标签显示对应数量</li>
+      <li>支持切换筛选条件</li>
+    </ul>
+    <h5>(2) 搜索功能</h5>
+    <ul>
+      <li>搜索框位于筛选标签右侧</li>
+      <li>支持按车牌号、VIN码、型号、作业类型、车辆大类、车辆小类进行模糊搜索</li>
+    </ul>
+    <h5>(3) 操作按钮</h5>
+    <ul>
+      <li><strong>接入车辆</strong>（蓝色）：搜索框右侧，点击弹出接入车辆表单</li>
+      <li><strong>新建作业</strong>（绿色）：搜索框右侧，点击弹出新建作业弹窗（不预选车辆）</li>
+    </ul>
+    <h5>(4) 车辆列表表格</h5>
+    <ul>
+      <li>表头列：车牌号、VIN码、作业类型、车辆大类、车辆小类、车辆型号、总质量(kg)、状态、操作</li>
+      <li>状态列显示彩色标签</li>
+      <li>操作列根据车辆状态动态显示：<ul>
+          <li><strong>作业中</strong>：查看（跳转作业监控）</li>
+          <li><strong>在线/离线</strong>：新建作业、删除</li>
+          <li><strong>删除</strong>：弹出二次确认对话框</li>
+        </ul>
+      </li>
+    </ul>
+    <h5>(6) 接入车辆弹窗</h5>
+    <p>表单字段：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>字段</th>
+          <th>类型</th>
+          <th>是否必填</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>VIN码</td>
+          <td>text</td>
+          <td>是</td>
+          <td>17位车辆识别码，根据VIN在环卫车辆中进行搜索</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>提交后将车辆的其他信息列出：车牌号、VIN码、作业类型、车辆大类、车辆小类、车辆型号、总质量(kg)、状态</li>
+      <li>VIN码去重校验</li>
+    </ul>
+    <h5>(7) 新建作业弹窗</h5>
+    <ul>
+      <li>两步表单向导</li>
+      <li><strong>第一步 - 基本信息</strong>：<ul>
+          <li>作业名称（必填，自动生成默认名称：<code>新作业_YYYYMMDDHHMMSS</code>）</li>
+          <li>车辆选择（必填，下拉列表，显示所有车辆及其类别和型号，不能选择正在作业的车辆）</li>
+          <li>已选车辆信息提示（车牌号、作业类型、状态）</li>
+          <li>路线选择（必填，下拉列表）</li>
+          <li>已选路线信息提示（里程、预计时长为此路线下完成作业的平均时长，如果此路线下没有完成的作业，则不显示预计时长）</li>
+          <li>清扫次数（必填，默认值为1，步进器范围1~3次）</li>
+        </ul>
+      </li>
+      <li><strong>第二步 - 作业配置</strong>：<ul>
+          <li>工作模式（必填，3选1卡片：洗扫模式/纯洗模式/干扫模式）</li>
+          <li>子模式选择（必填，前三项为互斥选项即三选一，最后一个选项可以叠加选择）</li>
+          <li>作业模式（必填，2选1卡片：标准作业/增强作业）</li>
+          <li>灯光设置（3个开关：工作灯/左转向灯/右转向灯）</li>
+        </ul>
+      </li>
+      <li>创建成功后跳转至作业监控页面（<code>monitoring.html?vehicle=车牌&amp;task=任务名</code>）,创建作业需要下发的任务包括：①车辆上电（未上电需要等ADAS初始化完成再下发剩余任务，时间暂定15S，已上电直接下发剩余任务） ②1.2.2.12清扫任务下发 ③1.2.1.3车辆返回规划路线 ④1.2.2.15上装控制</li>
+    </ul>
+    <hr>
+    <h3>3.2 作业列表 (<code>tasks.html</code>)</h3>
+    <h4>3.2.1 页面描述</h4>
+    <p>作业列表是系统的核心模块，提供作业任务的全面管理，包括任务创建、查看、筛选、搜索，以及路线管理功能。</p>
+    <h4>3.2.2 数据模型</h4>
+    <p><strong>作业列表字段</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>字段名</th>
+          <th>类型</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>作业状态</td>
+          <td>string</td>
+          <td>当前任务的作业状态：作业中/已完成/待开始</td>
+        </tr>
+        <tr>
+          <td>作业名称</td>
+          <td>string</td>
+          <td>任务设置的作业名称（如：港口A区洗扫作业），下方小字显示子作业模式（如：全洗扫 + 中喷杆）</td>
+        </tr>
+        <tr>
+          <td>工作模式</td>
+          <td>string</td>
+          <td>洗扫模式/纯洗模式/干扫模式</td>
+        </tr>
+        <tr>
+          <td>作业车辆</td>
+          <td>string</td>
+          <td>执行作业的车辆车牌号</td>
+        </tr>
+        <tr>
+          <td>作业路线</td>
+          <td>string[]</td>
+          <td>任务作业路线，因支持任务中进行更改路线，故此字段为数组。</td>
+        </tr>
+        <tr>
+          <td>清扫次数</td>
+          <td>number</td>
+          <td>执行作业的车辆车牌号</td>
+        </tr>
+        <tr>
+          <td>作业模式</td>
+          <td>enum</td>
+          <td>标准作业/增强作业</td>
+        </tr>
+        <tr>
+          <td>开始时间</td>
+          <td>string</td>
+          <td>作业开始时间</td>
+        </tr>
+        <tr>
+          <td>结束时间</td>
+          <td>string</td>
+          <td>作业结束时间（进行中显示&quot;-&quot;）</td>
+        </tr>
+        <tr>
+          <td>耗时</td>
+          <td>string</td>
+          <td>当前作业耗时（HH:MM:SS）</td>
+        </tr>
+        <tr>
+          <td>进度</td>
+          <td>number</td>
+          <td>作业进度百分比（0~100）</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>工作模式枚举</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>模式</th>
+          <th>颜色</th>
+          <th>子模式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>洗扫模式</td>
+          <td>#00D4FF</td>
+          <td>左洗扫、右洗扫、全洗扫（互斥）；中喷杆（可叠加）</td>
+        </tr>
+        <tr>
+          <td>纯洗模式</td>
+          <td>#8B5CF6</td>
+          <td>左清洗、右清洗、全清洗（互斥）；中喷杆（可叠加）</td>
+        </tr>
+        <tr>
+          <td>干扫模式</td>
+          <td>#F59E0B</td>
+          <td>左干扫、右干扫、全干扫（互斥）；降尘喷雾（可叠加）</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>异常数据文件字段</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>字段名</th>
+          <th>类型</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>id</td>
+          <td>string</td>
+          <td>文件唯一ID（如：AF001）</td>
+        </tr>
+        <tr>
+          <td>desc</td>
+          <td>string</td>
+          <td>异常描述，如"港口A区3号路口异常碰撞事件"</td>
+        </tr>
+        <tr>
+          <td>uploadTime</td>
+          <td>string</td>
+          <td>文件上传时间（YYYY-MM-DD HH:MM:SS）</td>
+        </tr>
+        <tr>
+          <td>occurTime</td>
+          <td>string</td>
+          <td>异常发生时间（YYYY-MM-DD HH:MM:SS）</td>
+        </tr>
+        <tr>
+          <td>duration</td>
+          <td>string</td>
+          <td>采集时长（HH:MM:SS）</td>
+        </tr>
+        <tr>
+          <td>type</td>
+          <td>enum</td>
+          <td>异常类型：1-碰撞 / 2-紧急制动 / 3-HMI手动触发 / 4-地图采集</td>
+        </tr>
+        <tr>
+          <td>size</td>
+          <td>string</td>
+          <td>文件大小（如：156.3 MB、1.2 GB）</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>异常类型枚举</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>类型编码</th>
+          <th>类型名称</th>
+          <th>颜色标识</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>碰撞</td>
+          <td>红色 #ef4444</td>
+          <td>车辆发生碰撞时自动触发采集</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>紧急制动</td>
+          <td>橙色 #f59e0b</td>
+          <td>车辆触发紧急制动时自动采集</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>HMI手动触发</td>
+          <td>紫色 #8b5cf6</td>
+          <td>驾驶员通过HMI手动触发采集</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>地图采集</td>
+          <td>青色 #00D4FF</td>
+          <td>用于点云地图数据采集，可关联到地图管理</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><strong>作业状态枚举</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>状态</th>
+          <th>颜色</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>标准作业</td>
+          <td>蓝色</td>
+          <td>正常标准强度作业</td>
+        </tr>
+        <tr>
+          <td>增强作业</td>
+          <td>紫色</td>
+          <td>增强强度作业</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>3.2.3 功能清单</h4>
+    <h5>(1) 新建作业弹窗</h5>
+    <ul>
+      <li>顶部&quot;新建作业&quot;按钮触发</li>
+      <li>与车辆管理页面弹窗一致的两步表单</li>
+      <li>支持从已有作业&quot;再次作业&quot;创建</li>
+    </ul>
+    <h5>(3) 作业筛选</h5>
+    <ul>
+      <li>筛选标签：全部、待开始、未完成、标准作业、增强作业、已完成</li>
+      <li>每个标签显示对应数量</li>
+    </ul>
+    <h5>(4) 作业搜索</h5>
+    <ul>
+      <li>支持多维度搜索：<ul>
+          <li>作业名称</li>
+          <li>开始/结束日期范围</li>
+          <li>作业车辆</li>
+          <li>工作模式</li>
+          <li>作业路线</li>
+        </ul>
+      </li>
+      <li>支持一键清除所有筛选条件</li>
+    </ul>
+    <h5>(5) 作业列表表格</h5>
+    <ul>
+      <li>表头列：作业状态、作业名称、工作模式、作业车辆、作业路线、清扫次数、作业模式、开始时间、结束时间、耗时、里程（KM）、进度、操作</li>
+      <li>状态列显示彩色标签</li>
+      <li>进度列显示进度条</li>
+      <li>操作列（固定表格最右侧）：<ul>
+          <li><strong>查看</strong>：跳转作业监控页面</li>
+          <li><strong>再次作业</strong>：同新建作业，将当前作业任务的参数（除作业名称外）自动填充</li>
+          <li><strong>文件</strong>（橙色按钮）：打开异常数据文件弹窗，查看该车辆上报的异常数据</li>
+          <li><strong>删除</strong>：二次确认后删除</li>
+        </ul>
+      </li>
+    </ul>
+    <h5>(6) 异常数据文件弹窗</h5>
+    <ul>
+      <li>通过作业列表操作列的"文件"按钮触发</li>
+      <li>弹窗以表格形式展示该车辆上报的所有异常数据文件</li>
+      <li>表头列：异常描述、上传时间、异常发生时间、采集时长、类型、文件大小、操作</li>
+      <li>类型列以彩色标签展示：碰撞（红色）、紧急制动（橙色）、HMI手动触发（紫色）</li>
+      <li>文件大小按单位区分颜色：GB（橙色）、MB（青色）</li>
+      <li>操作列包含：<ul>
+          <li><strong>下载按钮</strong>：模拟文件下载，点击后显示"下载中..."状态（1.5秒后恢复）</li>
+        </ul>
+      </li>
+    </ul>
+    <hr>
+    <h3>3.3 作业监控 (<code>monitoring.html</code>)</h3>
+    <h4>3.3.1 页面描述</h4>
+    <p>作业监控是系统的实时监控核心页面，提供车辆在地图上的实时位置追踪、作业进度查看、远程控制操作以及多路视频监控功能，应用场景为港口调度员在平板上对车辆进行实时监控和远程控制，故需要作<strong>平板支持</strong>。</p><p>创建作业任务后跳转此页面，将会执行以下4个步骤，需要做好信息提示和进度提醒：①车辆上电（未上电需要等ADAS初始化完成再下发剩余任务，时间暂定15S，已上电直接下发剩余任务） ②1.2.2.12清扫任务下发 ③1.2.1.3车辆返回规划路线 ④1.2.2.15上装控制
+    </p>
+    <h4>3.3.2 功能清单</h4>
+    <h5>(1) 地图监控（中央主区域）</h5>
+    <ul>
+      <li><strong>地图引擎</strong>：OpenLayers，支持 GeoTIFF 瓦片图层</li>
+      <li><strong>规划路径</strong>：蓝色虚线显示预设路线</li>
+      <li><strong>实际轨迹</strong>：金色实线显示已行驶路径</li>
+      <li><strong>途经点</strong>：编号圆点标记（A、B、C...）</li>
+      <li><strong>车辆标记</strong>：绿色三角箭头 + 光晕效果 + 车牌号标签<ul>
+          <li>箭头方向随车辆行驶角度实时旋转</li>
+        </ul>
+      </li>
+      <li><strong>作业进度条</strong>：地图顶部浮层，显示当前作业完成百分比</li>
+      <li><strong>图例</strong>：左下角浮层，标注各元素含义</li>
+    </ul>
+    <h5>(2) 车辆仪表盘（左侧面板，可折叠）</h5>
+    <ul>
+      <li>当前选中车辆的信息卡片</li>
+      <li>车辆数据仪表：<ul>
+          <li>自驾状态（开启/关闭）</li>
+          <li>车速（km/h）</li>
+          <li>电量（%）</li>
+          <li>档位（P、D、R、N）</li>
+          <li>钥匙电源（ON/OFF）</li>
+          <li>EPB状态（释放状态-P灯不亮、驻车状态-P灯长亮、释放中-P灯闪烁、驻车中-P灯闪烁）</li>
+          <li>整车高压（已连接/未连接）</li>
+          <li>门锁状态（解锁/上锁）</li>
+          <li>车门开关（开启/关闭）</li>
+        </ul>
+      </li>
+      <li>上装面板：
+        <ul>
+          <li>高压状态（开启/关闭）</li>
+          <li>油泵状态（开启/关闭）</li>
+          <li>工作模式（洗扫、纯洗、干扫）</li>
+          <li>子作业模式（左洗扫+中喷杆）</li>
+          <li>作业模式（标准/增强）</li>
+          <li>风机转速（2500 rpm）</li>
+          <li>水泵转速（2500 rpm）</li>
+          <li>齿轮泵转速（2500 rpm）</li>
+          <li>水位低（正常/报警）</li>
+          <li>污水箱满（正常/报警）</li>
+          <li>风机电机（正常/报警）</li>
+          <li>水泵电机（正常/报警）</li>
+          <li>液压泵电机（正常/报警）</li>
+          <li>液位传感器（正常/报警）</li>
+          <li>水路球阀（正常/报警）</li>
+        </ul>
+      </li>
+      <li>故障报警（自动驾驶系统报警信息）
+        <ul>
+          <li>35926：定位丢失报警        15:23:11</li>
+        </ul>
+      </li>
+    </ul>
+    <h5>(3) 车辆控制面板（地图监控下方和右上方）</h5>
+    <ul>
+      <li><strong>底部操作按钮（高频）</strong>：<ul>
+          <li>开始（绿色，开始后消失）</li>
+          <li>暂停/继续（黄色/绿色，根据状态切换，暂停为原地停车）</li>
+          <li>终止（红色）</li>
+        </ul>
+      </li>
+      <li><strong>右上方操作按钮（低频）</strong>：<ul>
+          <li>任务修改：弹窗进行参数更改，可更改清扫次数和作业路线</li>
+          <li><strong>上装控制</strong>：远程控制工作装置<ul>
+              <li>工作模式选择</li>
+              <li>子模式配置</li>
+              <li>作业强度切换</li>
+              <li>灯光控制（工作灯/左转向灯/右转向灯）</li>
+            </ul>
+          </li>
+          <li>暂停至停车点：弹出停车点选择弹窗</li>
+        </ul>
+      </li>
+      <li><strong>断点作业</strong>：车辆行驶到断点位置继续作业，按照新建作业处理，名称显示为“原作业任务名称_断点作业1”</li>
+      <li><strong>调试面板</strong>：各种指令单列出来，方便现场调试</li>
+    </ul>
+    <h5>(4) 播放控制栏（地图右下角浮层，回放时显示）</h5>
+    <ul>
+      <li>播放/暂停按钮</li>
+      <li>时间轴进度条</li>
+      <li>当前时间 / 总时长显示</li>
+      <li>倍速控制：1x / 2x / 4x / 8x</li>
+    </ul>
+    <h5>(5) 视频监控</h5>
+    <ul>
+      <li>支持2x2网格视图和竖向6路列表视图</li>
+      <li>摄像头列表：<ul>
+          <li>CAM-01 前置摄像头</li>
+          <li>CAM-02 后置摄像头</li>
+          <li>CAM-03 左侧摄像头</li>
+          <li>CAM-04 右侧摄像头</li>
+          <li>CAM-05 作业摄像头</li>
+          <li>CAM-06 鸟瞰摄像头</li>
+        </ul>
+      </li>
+      <li>每路摄像头显示编号、名称、REC状态</li>
+      <li>支持单路摄像头放大全屏查看（非全屏）</li>
+    </ul>
+    <hr>
+    <h3>3.4 路线配置 (<code>route-config.html</code>)</h3>
+    <h4>3.4.1 页面描述</h4>
+    <p>路线配置模块用于管理作业路线和停车点，提供可视化路线编辑和停车点地图选点功能。</p>
+    <h4>3.4.2 功能清单</h4>
+    <h5>(1) 路线管理</h5>
+    <ul>
+      <li><strong>Tab切换</strong>：路线管理 / 停车点管理</li>
+      <li><strong>搜索</strong>：按路线名称搜索</li>
+      <li><strong>新建路线按钮</strong></li>
+      <li><strong>路线列表</strong>：卡片式展示<ul>
+          <li>路线名称、里程、途经点数量</li>
+          <li>操作：查看、编辑、删除（二次确认）</li>
+        </ul>
+      </li>
+      <li><strong>路线编辑弹窗</strong>：<ul>
+          <li>路线名称输入</li>
+          <li>Canvas 地图区域：<ul>
+              <li>&quot;添加途经点&quot;模式：点击地图添加</li>
+              <li>&quot;选择模式&quot;：拖拽调整途经点</li>
+              <li>&quot;清空&quot;：清除所有途经点</li>
+            </ul>
+          </li>
+          <li>途经点列表：<ul>
+              <li>编号标识（起点绿色、终点红色、中间点青色）</li>
+              <li>标签编辑（双击修改名称）</li>
+              <li>坐标显示</li>
+              <li>删除单个途经点</li>
+            </ul>
+          </li>
+          <li>自动计算里程</li>
+        </ul>
+      </li>
+      <li><strong>路线查看弹窗</strong>：只读查看路线详情和途经点</li>
+    </ul>
+    <h5>(2) 停车点管理</h5>
+    <ul>
+      <li><strong>搜索</strong>：按名称或位置搜索</li>
+      <li><strong>新建停车点按钮</strong></li>
+      <li><strong>停车点列表</strong>：卡片式展示<ul>
+          <li>停车点名称、位置描述、坐标</li>
+          <li>状态标签：正常/已满/空闲/停用</li>
+          <li>操作：查看、编辑、删除（二次确认）</li>
+        </ul>
+      </li>
+      <li><strong>停车点编辑弹窗</strong>：<ul>
+          <li>停车点名称</li>
+          <li>位置描述</li>
+          <li>地图选点：<ul>
+              <li>点击&quot;选择位置&quot;进入选点模式</li>
+              <li>Canvas 地图点击选取坐标</li>
+              <li>显示经纬度坐标</li>
+              <li>清空坐标</li>
+            </ul>
+          </li>
+        </ul>
+      </li>
+      <li><strong>停车点查看弹窗</strong>：<ul>
+          <li>只读展示停车点信息</li>
+          <li>Canvas 地图预览显示停车点位置（P标记）</li>
+        </ul>
+      </li>
+    </ul>
+    <hr>
+    <h3>3.5 地图管理 (<code>maps.html</code>)</h3>
+    <h4>3.5.1 页面描述</h4>
+    <p>地图管理模块用于管理系统中的底图数据，包括点云地图和矢量地图的上传、版本管理和预览。支持上传时将点云地图下发到指定车辆，以及为矢量地图配置地图服务地址供作业监控页面加载。</p>
+    <h4>3.5.2 数据模型</h4>
+    <p><strong>地图数据结构</strong>：</p>
+    <pre class="hljs"><code class="language-plaintext">mapData = {
+  &#x27;地区名称&#x27;: {
+    lidar: [ 地图版本列表 ],    // 点云地图
+    vector: [ 地图版本列表 ],   // 矢量地图
+  }
+}</code></pre>
+    <p><strong>地图版本字段</strong>：</p>
+    <table>
+      <thead>
+        <tr>
+          <th>字段名</th>
+          <th>类型</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>id</td>
+          <td>string</td>
+          <td>唯一ID（LC-点云 / VC-矢量）</td>
+        </tr>
+        <tr>
+          <td>regionName</td>
+          <td>string</td>
+          <td>所属地区名称</td>
+        </tr>
+        <tr>
+          <td>version</td>
+          <td>string</td>
+          <td>版本号（如：1.0.2）</td>
+        </tr>
+        <tr>
+          <td>uploadTime</td>
+          <td>string</td>
+          <td>上传时间</td>
+        </tr>
+        <tr>
+          <td>uploader</td>
+          <td>string</td>
+          <td>上传人</td>
+        </tr>
+        <tr>
+          <td>desc</td>
+          <td>string</td>
+          <td>版本描述</td>
+        </tr>
+        <tr>
+          <td>fileSize</td>
+          <td>string</td>
+          <td>文件大小（MB）</td>
+        </tr>
+        <tr>
+          <td>isActive</td>
+          <td>boolean</td>
+          <td>是否为当前激活版本</td>
+        </tr>
+        <tr>
+          <td>type</td>
+          <td>enum</td>
+          <td>地图类型：lidar / vector</td>
+        </tr>
+        <tr>
+          <td>mapServiceUrl</td>
+          <td>string</td>
+          <td>矢量地图服务地址（仅 vector 类型，非必填），格式如 WFS 服务 URL</td>
+        </tr>
+      </tbody>
+    </table>
+    <h4>3.5.3 功能清单</h4>
+    <h5>(1) 统计概览</h5>
+    <ul>
+      <li>地区总数</li>
+      <li>版本总数</li>
+      <li>当前活跃版本数</li>
+    </ul>
+    <h5>(2) 地图上传</h5>
+    <ul>
+      <li>支持选择地图类型：点云地图 / 矢量地图 / 两者都上传</li>
+      <li>选择目标地区（下拉或输入新地区名称）</li>
+      <li>版本号输入（如：1.0.0）</li>
+      <li>版本描述输入</li>
+      <li>文件选择（点云支持 PCD/PLY/LAS/BIN/ZIP，矢量支持 PDF/ZIP/PNG/JPG）</li>
+      <li><strong>点云地图下发车辆</strong>：上传点云地图时，可选择需要下发地图的车辆（支持全选、搜索），上传完成后自动记录下发关系</li>
+      <li><strong>矢量地图服务地址</strong>：上传矢量地图时，可输入地图服务地址（非必填），如 WFS 服务 URL，保存后作业监控地图将加载该地址的矢量瓦片服务</li>
+      <li>上传确认按钮</li>
+      <li>上传后自动设为新版本，旧版本设为历史版本</li>
+    </ul>
+    <h5>(3) 地区地图列表</h5>
+    <ul>
+      <li>按地区分组展示</li>
+      <li>每个地区可展开/折叠</li>
+      <li>展开后分为两个子标签：点云地图 / 矢量地图</li>
+      <li>每个版本显示：<ul>
+          <li>版本号</li>
+          <li>上传时间</li>
+          <li>上传人</li>
+          <li>文件大小</li>
+          <li>当前版本标记（高亮）</li>
+        </ul>
+      </li>
+      <li>操作按钮：<ul>
+          <li>查看详情（弹窗）</li>
+          <li>设为当前版本</li>
+          <li>删除</li>
+        </ul>
+      </li>
+    </ul>
+    <h5>(4) 地图详情弹窗</h5>
+    <ul>
+      <li>基本信息：地区名称、版本号、上传人、上传时间、文件大小、当前状态</li>
+      <li>版本描述</li>
+      <li>地图预览（Canvas 渲染矢量地图预览）</li>
+    </ul>
+    <hr>
+    <h2>四、页面流转关系</h2>
+    <pre class="hljs"><code class="language-plaintext">车辆管理 ──新建作业──→ 作业监控（带 vehicle + task 参数）
+    │
+车辆管理──接入车辆→ 本页弹窗
+    │
+作业列表 ──新建作业──→ 作业监控
+    │
+    ├──查看──→ 作业监控
+    │
+    ├──文件──→ 作业异常数据文件弹窗
+    │
+    └──路线管理（本页折叠面板）
+         ├──地图编辑──→ 路线编辑弹窗
+         └──新建路线──→ 路线编辑弹窗
+
+路线配置 ──┬── 路线编辑弹窗
+           └── 停车点编辑弹窗
+
+地图管理 ──┬── 上传弹窗
+           └── 详情弹窗</code></pre>
+    <h2>五、关键业务流程</h2>
+    <h3>5.1 车辆接入流程</h3>
+    <ol>
+      <li>进入车辆管理页面</li>
+      <li>点击&quot;接入车辆&quot;按钮</li>
+      <li>填写车辆信息（VIN、车牌号、作业类型、车辆信息等）</li>
+      <li>提交，车辆自动设为&quot;在线&quot;状态</li>
+    </ol>
+    <h3>5.2 作业创建与下发流程</h3>
+    <ol>
+      <li>在车辆管理或作业列表页面，点击&quot;新建作业&quot;</li>
+      <li>第一步：填写基本信息（名称、车辆选择、路线选择、清扫次数）</li>
+      <li>第二步：配置作业参数（工作模式、子模式、作业状态、灯光设置）</li>
+      <li>确认创建，跳转至作业监控页面</li>
+    </ol>
+    <h3>5.3 作业监控与控制流程</h3>
+    <ol>
+      <li>作业监控页面实时展示车辆位置和作业进度</li>
+      <li>可通过底部按钮控制作业状态（开始/暂停/继续/终止）</li>
+      <li>可通过参数下发修改当前作业配置</li>
+      <li>可通过上装控制远程控制车辆工作装置</li>
+      <li>可查看多路视频监控画面</li>
+      <li>可查看故障报警信息</li>
+    </ol>
+    <h3>5.4 异常数据上报显示</h3>
+    <ol>
+      <li>在作业列表页面，点击操作列的"文件"按钮</li>
+      <li>弹窗展示该车辆上传的作业异常数据文件（碰撞、紧急制动、HMI手动触发），此页面不包含“地图采集”类型</li>
+      <li>对于需要存档的异常文件，点击"下载"按钮进行下载</li>
+    </ol>
+    <hr>
+    <h2>六、非功能需求</h2>
+    <h3>6.1 浏览器兼容性</h3>
+    <ul>
+      <li>推荐 Chrome 90+ / Edge 90+</li>
+      <li>支持 Safari</li>
+      <li>支持 平板端查看</li>
+    </ul>
+    <h3>6.2 性能要求</h3>
+    <ul>
+      <li>地图加载时间 &lt; 3s</li>
+      <li>页面切换无明显卡顿</li>
+      <li>实时位置更新延迟 &lt; 1s</li>
+    </ul>
+    <hr>
+    <h2>附录 A：枚举值汇总</h2>
+    <h3>A.1 车辆状态</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+          <th>颜色</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>working</td>
+          <td>作业中</td>
+          <td>绿色 #4ade80</td>
+        </tr>
+        <tr>
+          <td>online</td>
+          <td>在线</td>
+          <td>黄色 #facc15</td>
+        </tr>
+        <tr>
+          <td>offline</td>
+          <td>离线</td>
+          <td>灰色 #6b7280</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.2 作业类型</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>sweep</td>
+          <td>清扫作业</td>
+        </tr>
+        <tr>
+          <td>water</td>
+          <td>洒水作业</td>
+        </tr>
+        <tr>
+          <td>transport</td>
+          <td>清运作业</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.3 车辆大类</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>wash_sweep</td>
+          <td>洗扫车</td>
+        </tr>
+        <tr>
+          <td>water_sprinkler</td>
+          <td>洒水车</td>
+        </tr>
+        <tr>
+          <td>compactor</td>
+          <td>压缩车</td>
+        </tr>
+        <tr>
+          <td>...</td>
+          <td>...</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.4 工作模式</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+          <th>颜色</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>wash_sweep</td>
+          <td>洗扫模式</td>
+          <td>#00D4FF</td>
+        </tr>
+        <tr>
+          <td>pure_wash</td>
+          <td>纯洗模式</td>
+          <td>#8B5CF6</td>
+        </tr>
+        <tr>
+          <td>dry_sweep</td>
+          <td>干扫模式</td>
+          <td>#F59E0B</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.5 作业强度</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+          <th>颜色</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>standard</td>
+          <td>标准作业</td>
+          <td>#3b82f6</td>
+        </tr>
+        <tr>
+          <td>enhanced</td>
+          <td>增强作业</td>
+          <td>#a855f7</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.6 停车点状态</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+          <th>颜色</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>normal</td>
+          <td>正常</td>
+          <td>#00D4FF</td>
+        </tr>
+        <tr>
+          <td>full</td>
+          <td>已满</td>
+          <td>#FF6B6B</td>
+        </tr>
+        <tr>
+          <td>idle</td>
+          <td>空闲</td>
+          <td>#00FF88</td>
+        </tr>
+        <tr>
+          <td>disabled</td>
+          <td>停用</td>
+          <td>#64748b</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.7 地图类型</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>lidar</td>
+          <td>点云地图</td>
+        </tr>
+        <tr>
+          <td>vector</td>
+          <td>矢量地图</td>
+        </tr>
+      </tbody>
+    </table>
+    <h3>A.8 异常数据类型</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>值</th>
+          <th>显示文本</th>
+          <th>颜色</th>
+          <th>是否可关联地图</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td>碰撞</td>
+          <td>#ef4444</td>
+          <td>否</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>紧急制动</td>
+          <td>#f59e0b</td>
+          <td>否</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>HMI手动触发</td>
+          <td>#8b5cf6</td>
+          <td>否</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>地图采集</td>
+          <td>#00D4FF</td>
+          <td>是</td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "sanitation-robot",
+  "description": "无人驾驶环卫作业车监控系统",
+  "preferences": {
+    "style": "dark-tech",
+    "primaryColor": "#00D4FF",
+    "secondaryColor": "#0066FF",
+    "accentColor": "#00FF88",
+    "background": "#0a0e1a",
+    "font": "Inter, system-ui, sans-serif",
+    "borderRadius": "8px"
+  }
+}

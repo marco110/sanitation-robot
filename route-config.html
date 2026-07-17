@@ -1,0 +1,1611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>路线配置 - 环卫智控系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter,wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+      background: #060b18;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1424;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+      border-radius: 2px;
+    }
+
+    .glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+    }
+
+    .panel {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+    }
+
+    .nav-item {
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      background: rgba(0, 212, 255, 0.08);
+    }
+
+    .nav-item.active {
+      border-left: 3px solid #00D4FF;
+    }
+
+    .input-base {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      color: #e2e8f0;
+      padding: 9px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Noto Sans SC', 'Inter', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      outline: none;
+    }
+
+    .input-base::placeholder {
+      color: #334155;
+    }
+
+    .input-base:focus {
+      border-color: rgba(0, 212, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0066FF, #0044CC);
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+    }
+
+    .tab-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s;
+      background: transparent;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    .tab-btn:hover {
+      color: #e2e8f0;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: rgba(0, 212, 255, 0.1);
+      color: #00D4FF;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.94) translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .modal-overlay {
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-content {
+      animation: modalIn 0.2s ease-out;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ─── Icon helpers ─────────────────────────────────────────────────────────────
+
+    const IconX = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+    const IconPlus = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+    const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+    const IconEdit = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>;
+    const IconTrash = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>;
+    const IconRoute = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></svg>;
+    const IconMapPin = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>;
+    const IconCheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+    const IconEye = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>;
+
+    // ─── Default Data ────────────────────────────────────────────────────────────
+
+    const DEFAULT_ROUTES = [
+      { id: 'r1', label: '路线 A - 园区主干道', dist: '2.4 km', time: '约 60 分钟', waypoints: [
+        { x: 100, y: 100, label: '起点' },
+        { x: 500, y: 200, label: '终点' }
+      ]},
+      { id: 'r2', label: '路线 B - 商业街区', dist: '3.1 km', time: '约 78 分钟', waypoints: [
+        { x: 120, y: 80, label: '起点' },
+        { x: 300, y: 120, label: '途经点 2' },
+        { x: 450, y: 180, label: '终点' }
+      ]},
+      { id: 'r3', label: '路线 C - 居民小区', dist: '1.8 km', time: '约 45 分钟', waypoints: [
+        { x: 80, y: 120, label: '起点' },
+        { x: 200, y: 200, label: '途经点 2' },
+        { x: 350, y: 150, label: '终点' }
+      ]},
+      { id: 'r4', label: '路线 D - 公园绿道', dist: '2.5 km', time: '约 55 分钟', waypoints: [{ x: 80, y: 120, label: '办公楼门口垃圾桶' },
+          { x: 200, y: 200, label: '途经点 2' }]}
+    ];
+
+    const DEFAULT_PARKING_SPOTS = [
+      { id: 'p1', name: '停车场 A区', location: '园区东北角', capacity: 5, occupied: 3, status: 'normal', lat: 31.2304, lng: 121.4737, desc: '配备充电桩，可容纳5辆车' },
+      { id: 'p2', name: '停车场 B区', location: '园区西南角', capacity: 8, occupied: 6, status: 'normal', lat: 31.2284, lng: 121.4717, desc: '大型停车场，适合大型车辆停放' },
+      { id: 'p3', name: '充电站 1号', location: '园区中心', capacity: 4, occupied: 4, status: 'full', lat: 31.2294, lng: 121.4727, desc: '快速充电站，支持快充模式' },
+      { id: 'p4', name: '维修区', location: '园区西北角', capacity: 3, occupied: 1, status: 'normal', lat: 31.2314, lng: 121.4707, desc: '提供日常维护和紧急维修服务' },
+      { id: 'p5', name: '停车场 C区', location: '园区东南角', capacity: 6, occupied: 0, status: 'idle', lat: 31.2274, lng: 121.4747, desc: '备用停车区，24小时开放' }
+    ];
+
+    // ─── Modal Component ────────────────────────────────────────────────────────
+
+    function Modal({ title, onClose, children, width = 'max-w-lg' }) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div className={`modal-content ${width} w-full rounded-xl bg-[#0d1a2e] border border-[#1a3350] shadow-2xl`} onClick={e => e.stopPropagation()}>
+            {children}
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Route View Modal (查看弹窗) ────────────────────────────────────────────
+
+    function RouteViewModal({ route, onClose }) {
+      const canvasRef = useRef(null);
+
+      const GRID = 50;
+      const CANVAS_W = 580;
+      const CANVAS_H = 260;
+      const WP_RADIUS = 10;
+
+      const draw = React.useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.3)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= CANVAS_W; x += GRID) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+        }
+        for (let y = 0; y <= CANVAS_H; y += GRID) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#1a3350';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, CANVAS_W - 2, CANVAS_H - 2);
+
+        // Labels
+        ctx.fillStyle = '#334155';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('A', 8, 8);
+        ctx.fillText('B', 278, 8);
+        ctx.fillText('C', 548, 8);
+
+        // Route path
+        if (route.waypoints.length >= 2) {
+          // Animated dashed line
+          ctx.setLineDash([8, 4]);
+          ctx.beginPath();
+          ctx.moveTo(route.waypoints[0].x, route.waypoints[0].y);
+          for (let i = 1; i < route.waypoints.length; i++) {
+            ctx.lineTo(route.waypoints[i].x, route.waypoints[i].y);
+          }
+          ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Direction arrows
+          for (let i = 0; i < route.waypoints.length - 1; i++) {
+            const wp1 = route.waypoints[i];
+            const wp2 = route.waypoints[i + 1];
+            const midX = (wp1.x + wp2.x) / 2;
+            const midY = (wp1.y + wp2.y) / 2;
+            const angle = Math.atan2(wp2.y - wp1.y, wp2.x - wp1.x);
+            
+            ctx.save();
+            ctx.translate(midX, midY);
+            ctx.rotate(angle);
+            ctx.fillStyle = 'rgba(0,212,255,0.8)';
+            ctx.beginPath();
+            ctx.moveTo(8, 0);
+            ctx.lineTo(-4, -5);
+            ctx.lineTo(-4, 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        // Waypoints
+        route.waypoints.forEach((wp, i) => {
+          // Glow
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS + 8, 0, Math.PI * 2);
+          const gradient = ctx.createRadialGradient(wp.x, wp.y, 0, wp.x, wp.y, WP_RADIUS + 8);
+          gradient.addColorStop(0, i === 0 ? 'rgba(0,255,136,0.3)' : i === route.waypoints.length - 1 ? 'rgba(255,107,107,0.3)' : 'rgba(0,212,255,0.3)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.fill();
+
+          // Outer circle
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS, 0, Math.PI * 2);
+          ctx.fillStyle = i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF';
+          ctx.fill();
+
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS - 3, 0, Math.PI * 2);
+          ctx.fillStyle = '#060b18';
+          ctx.fill();
+
+          // Label
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(i + 1, wp.x, wp.y);
+
+          // Name tag
+          if (wp.label) {
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '10px Noto Sans SC, Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(wp.label, wp.x, wp.y - WP_RADIUS - 4);
+          }
+        });
+
+        // Empty state
+        if (route.waypoints.length === 0) {
+          ctx.fillStyle = 'rgba(100,116,139,0.5)';
+          ctx.font = '13px Noto Sans SC, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('该路线暂无途经点信息', CANVAS_W / 2, CANVAS_H / 2);
+        }
+      }, [route]);
+
+      useEffect(() => {
+        draw();
+      }, [draw]);
+
+      return (
+        <Modal title="路线详情" onClose={onClose} width="max-w-2xl">
+          <div style={{ padding: '18px 20px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+                  路线详情
+                </h2>
+                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  查看路线基本信息和路线地图
+                </p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+                <IconX />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ margin: '14px 20px', height: 1, background: 'linear-gradient(90deg, transparent, #1a3350, transparent)' }} />
+
+          {/* Basic Info */}
+          <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+              <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>路线名称</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{route.name || route.label}</div>
+              </div>
+              <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>总距离约</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#00D4FF', fontFamily: 'Inter, sans-serif' }}>{route.dist}</div>
+              </div>
+              <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>途经点数</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>{route.waypoints.length} 个</div>
+              </div>
+            </div>
+
+            {/* Route Map */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif' }}>路线地图</label>
+                <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00FF88' }}></span> 起点
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00D4FF' }}></span> 途经点
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#FF6B6B' }}></span> 终点
+                  </span>
+                </div>
+              </div>
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_W}
+                height={CANVAS_H}
+                style={{
+                  width: '100%', height: 'auto', borderRadius: 10,
+                  border: '1.5px solid #1a3350', cursor: 'default'
+                }}
+              />
+            </div>
+
+            {/* Waypoint List */}
+            {route.waypoints.length > 0 && (
+              <div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontFamily: 'Noto Sans SC, sans-serif' }}>途经点详情</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {route.waypoints.map((wp, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+                      background: '#080f1e', borderRadius: 8, border: '1px solid #1a3350'
+                    }}>
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF',
+                        fontSize: 11, fontWeight: 700, color: '#060b18'
+                      }}>
+                        {i + 1}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{wp.label}</div>
+                        <div style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', marginTop: 2 }}>
+                          坐标: ({wp.x}, {wp.y})
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 10, padding: '2px 8px', borderRadius: 4,
+                        fontFamily: 'Noto Sans SC, sans-serif',
+                        background: i === 0 ? 'rgba(0,255,136,0.1)' : i === route.waypoints.length - 1 ? 'rgba(255,107,107,0.1)' : 'rgba(0,212,255,0.1)',
+                        color: i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF'
+                      }}>
+                        {i === 0 ? '起点' : i === route.waypoints.length - 1 ? '终点' : `途经点 ${i + 1}`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'center' }}>
+            <button onClick={onClose} style={{ padding: '8px 32px', borderRadius: 8, fontSize: 13, background: 'rgba(0,212,255,0.1)', border: '1.5px solid #1a3350', color: '#94a3b8', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              关闭
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // ─── Route Builder Modal ────────────────────────────────────────────────────
+
+    function RouteBuilderModal({ onSave, onClose, initialRoute }) {
+      const canvasRef = useRef(null);
+      const [waypoints, setWaypoints] = useState(
+        (initialRoute?.waypoints || []).map((wp, i) => ({
+          ...wp,
+          label: wp.label || `途经点 ${i + 1}`,
+        }))
+      );
+      const [routeName, setRouteName] = useState(initialRoute?.name || initialRoute?.label?.replace(/路线 [A-Z] - /, '') || '');
+      const [routeDesc, setRouteDesc] = useState('');
+      const [activeBtn, setActiveBtn] = useState('select');
+      const [hovered, setHovered] = useState(null);
+      const [dragging, setDragging] = useState(null);
+      const [editingIdx, setEditingIdx] = useState(null);
+
+      const GRID = 50;
+      const CANVAS_W = 600;
+      const CANVAS_H = 300;
+      const WP_RADIUS = 12;
+
+      const draw = React.useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.3)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= CANVAS_W; x += GRID) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+        }
+        for (let y = 0; y <= CANVAS_H; y += GRID) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#1a3350';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, CANVAS_W - 2, CANVAS_H - 2);
+
+        // Labels
+        ctx.fillStyle = '#334155';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('A', 8, 8);
+        ctx.fillText('B', 288, 8);
+        ctx.fillText('C', 568, 8);
+
+        // Route path
+        if (waypoints.length >= 2) {
+          ctx.beginPath();
+          ctx.moveTo(waypoints[0].x, waypoints[0].y);
+          for (let i = 1; i < waypoints.length; i++) {
+            ctx.lineTo(waypoints[i].x, waypoints[i].y);
+          }
+          ctx.strokeStyle = 'rgba(0,212,255,0.35)';
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+
+        // Waypoints
+        waypoints.forEach((wp, i) => {
+          const isHover = hoverIdx === i;
+          const isDragging = dragging && dragging.index === i;
+
+          // Glow
+          if (isHover || isDragging) {
+            ctx.beginPath();
+            ctx.arc(wp.x, wp.y, WP_RADIUS + 6, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,212,255,0.15)';
+            ctx.fill();
+          }
+
+          // Outer circle
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS, 0, Math.PI * 2);
+          ctx.fillStyle = isDragging ? '#00D4FF' : (i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF');
+          ctx.fill();
+
+          // Inner circle
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS - 4, 0, Math.PI * 2);
+          ctx.fillStyle = '#060b18';
+          ctx.fill();
+
+          // Label
+          const showLabel = wp.label && wp.label !== `途经点 ${i + 1}`;
+          if (showLabel) {
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '10px Noto Sans SC, Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(wp.label, wp.x, wp.y - WP_RADIUS - 3);
+          } else {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(i + 1, wp.x, wp.y);
+          }
+
+          // Border
+          ctx.beginPath();
+          ctx.arc(wp.x, wp.y, WP_RADIUS, 0, Math.PI * 2);
+          ctx.strokeStyle = isDragging ? '#fff' : 'rgba(255,255,255,0.4)';
+          ctx.lineWidth = isDragging ? 2 : 1.5;
+          ctx.stroke();
+        });
+
+        // Empty state
+        if (waypoints.length === 0) {
+          ctx.fillStyle = 'rgba(0,212,255,0.3)';
+          ctx.font = '13px Noto Sans SC, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('点击地图添加途经点', CANVAS_W / 2, CANVAS_H / 2);
+        }
+      }, [waypoints, hovered, dragging]);
+
+      const hoverIdx = React.useMemo(() => hovered, [hovered]);
+
+      useEffect(() => {
+        draw();
+      }, [draw]);
+
+      const getPos = (e) => {
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - rect.left) * (CANVAS_W / rect.width),
+          y: (e.clientY - rect.top) * (CANVAS_H / rect.height)
+        };
+      };
+
+      const snap = (v) => Math.round(v / GRID) * GRID;
+
+      const findWP = (x, y) => {
+        for (let i = waypoints.length - 1; i >= 0; i--) {
+          const wp = waypoints[i];
+          const d = Math.hypot(x - wp.x, y - wp.y);
+          if (d <= WP_RADIUS + 4) return i;
+        }
+        return null;
+      };
+
+      const handleCanvasClick = (e) => {
+        const pos = getPos(e);
+        const idx = findWP(pos.x, pos.y);
+        if (idx !== null) {
+          setDragging({ index: idx, startX: pos.x, startY: pos.y });
+          setActiveBtn('select');
+        } else if (activeBtn === 'add') {
+          const newLabel = `途经点 ${waypoints.length + 1}`;
+          const snapped = { x: snap(pos.x), y: snap(pos.y), label: newLabel };
+          setWaypoints(prev => [...prev, snapped]);
+        }
+      };
+
+      const handleCanvasMouseMove = (e) => {
+        const pos = getPos(e);
+        if (dragging !== null) {
+          const snapped = { x: snap(pos.x), y: snap(pos.y) };
+          setWaypoints(prev => prev.map((wp, i) => i === dragging.index ? { ...wp, ...snapped } : wp));
+        } else {
+          setHovered(findWP(pos.x, pos.y));
+        }
+      };
+
+      const handleCanvasMouseUp = () => setDragging(null);
+      const handleCanvasMouseLeave = () => { setDragging(null); setHovered(null); };
+
+      const handleClear = () => setWaypoints([]);
+
+      const handleSave = () => {
+        if (!routeName.trim()) { alert('请输入路线名称'); return; }
+        if (waypoints.length < 2) { alert('请至少添加 2 个途经点'); return; }
+        const scale = 30;
+        let dist = 0;
+        for (let i = 1; i < waypoints.length; i++) {
+          dist += Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
+        }
+        const distKm = (dist * scale / 1000).toFixed(1);
+        const timeMin = Math.round((dist * scale / 1000) / 5 * 60);
+        const letter = initialRoute?.id ? initialRoute.id.replace('r', '') : String.fromCharCode(65 + Math.floor(Math.random() * 26));
+        const newRoute = {
+          id: initialRoute?.id || ('r_' + Date.now()),
+          label: `路线 ${letter} - ${routeName}`,
+          name: routeName,
+          dist: `约${distKm} km`,
+          time: `约 ${timeMin} 分钟`,
+          waypoints,
+        };
+        onSave(newRoute);
+      };
+
+      return (
+        <Modal title={initialRoute ? '编辑路线' : '创建路线'} onClose={onClose} width="max-w-2xl">
+          <div style={{ padding: '18px 20px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+                  {initialRoute ? '编辑路线' : '创建路线'}
+                </h2>
+                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  在地图上点击添加途经点，拖拽调整位置
+                </p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+                <IconX />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ margin: '14px 20px', height: 1, background: 'linear-gradient(90deg, transparent, #1a3350, transparent)' }} />
+
+          <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6, display: 'block', fontFamily: 'Noto Sans SC, sans-serif' }}>路线名称</label>
+              <input
+                className="input-base"
+                value={routeName}
+                onChange={e => setRouteName(e.target.value)}
+                placeholder="请输入路线名称"
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif' }}>途经点</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <button onClick={() => setActiveBtn('add')}
+                    style={{
+                      padding: '5px 12px', borderRadius: 7, fontSize: 11, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif',
+                      background: activeBtn === 'add' ? 'rgba(0,212,255,0.15)' : '#080f1e',
+                      border: `1.5px solid ${activeBtn === 'add' ? '#00D4FF' : '#1a3350'}`,
+                      color: activeBtn === 'add' ? '#00D4FF' : '#94a3b8',
+                      transition: 'all 0.15s'
+                    }}>
+                    <IconPlus /> 添加途经点
+                  </button>
+                  <button onClick={() => setActiveBtn('select')}
+                    style={{
+                      padding: '5px 12px', borderRadius: 7, fontSize: 11, cursor: 'pointer',
+                      background: activeBtn === 'select' ? 'rgba(0,212,255,0.15)' : '#080f1e',
+                      border: `1.5px solid ${activeBtn === 'select' ? '#00D4FF' : '#1a3350'}`,
+                      color: activeBtn === 'select' ? '#00D4FF' : '#94a3b8',
+                      fontFamily: 'Noto Sans SC, sans-serif',
+                      transition: 'all 0.15s'
+                    }}>
+                    选择模式
+                  </button>
+                  <button onClick={handleClear} disabled={waypoints.length === 0}
+                    style={{
+                      padding: '5px 10px', borderRadius: 7, fontSize: 11, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'Noto Sans SC, sans-serif',
+                      background: '#080f1e', border: '1.5px solid #1a3350',
+                      color: waypoints.length === 0 ? '#334155' : '#ef4444',
+                      transition: 'all 0.15s'
+                    }}>
+                    <IconTrash /> 清空
+                  </button>
+                  <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                    途经点：<span style={{ color: '#00D4FF', fontWeight: 600 }}>{waypoints.length}</span>
+                  </div>
+                </div>
+              </div>
+
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_W}
+                height={CANVAS_H}
+                onClick={handleCanvasClick}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUp}
+                onMouseLeave={handleCanvasMouseLeave}
+                style={{
+                  width: '100%', height: 'auto', borderRadius: 10, cursor: activeBtn === 'add' ? 'crosshair' : 'default',
+                  border: '1.5px solid #1a3350'
+                }}
+              />
+            </div>
+
+            {/* Waypoint list */}
+            {waypoints.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {waypoints.map((wp, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                    background: '#080f1e', borderRadius: 8, border: '1px solid #1a3350'
+                  }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF',
+                      fontSize: 10, fontWeight: 700, color: '#060b18'
+                    }}>
+                      {i + 1}
+                    </div>
+                    {editingIdx === i ? (
+                      <input
+                        autoFocus
+                        className="input-base"
+                        style={{ padding: '4px 8px', fontSize: 12 }}
+                        value={wp.label}
+                        onChange={e => setWaypoints(prev => prev.map((w, j) => j === i ? { ...w, label: e.target.value } : w))}
+                        onBlur={() => setEditingIdx(null)}
+                        onKeyDown={e => e.key === 'Enter' && setEditingIdx(null)}
+                      />
+                    ) : (
+                      <span style={{ flex: 1, fontSize: 12, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{wp.label}</span>
+                    )}
+                    <span style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                      ({wp.x}, {wp.y})
+                    </span>
+                    <button onClick={() => setEditingIdx(i)} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                      <IconEdit />
+                    </button>
+                    <button onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                      <IconTrash />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button onClick={onClose} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px solid #1a3350', color: '#94a3b8', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              取消
+            </button>
+            <button onClick={handleSave} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: 'linear-gradient(135deg, #0066FF, #0044CC)', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              保存路线
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // ─── Parking Spot Modal ─────────────────────────────────────────────────────
+
+    function ParkingSpotModal({ onSave, onClose, initialSpot }) {
+      const canvasRef = useRef(null);
+      const [name, setName] = useState(initialSpot?.name || '');
+      const [location, setLocation] = useState(initialSpot?.location || '');
+      const [coords, setCoords] = useState({ 
+        lat: initialSpot?.lat || null, 
+        lng: initialSpot?.lng || null 
+      });
+      const [selectingOnMap, setSelectingOnMap] = useState(false);
+
+      const CANVAS_W = 580;
+      const CANVAS_H = 180;
+
+      const draw = React.useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Grid
+        const GRID = 40;
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.3)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= CANVAS_W; x += GRID) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+        }
+        for (let y = 0; y <= CANVAS_H; y += GRID) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#1a3350';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, CANVAS_W - 2, CANVAS_H - 2);
+
+        // Labels
+        ctx.fillStyle = '#334155';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('A', 8, 8);
+        ctx.fillText('B', 278, 8);
+        ctx.fillText('C', 548, 8);
+
+        // Draw marker if exists
+        if (coords.lat && coords.lng) {
+          const markerX = Math.min(Math.max(((coords.lat - 31.22) * 10000), 30), CANVAS_W - 30);
+          const markerY = Math.min(Math.max(((121.47 - coords.lng) * 10000), 30), CANVAS_H - 30);
+
+          // Glow
+          const gradient = ctx.createRadialGradient(markerX, markerY, 0, markerX, markerY, 35);
+          gradient.addColorStop(0, 'rgba(0,212,255,0.4)');
+          gradient.addColorStop(1, 'transparent');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(markerX, markerY, 35, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Outer circle
+          ctx.beginPath();
+          ctx.arc(markerX, markerY, 14, 0, Math.PI * 2);
+          ctx.fillStyle = '#00D4FF';
+          ctx.fill();
+
+          // Inner
+          ctx.beginPath();
+          ctx.arc(markerX, markerY, 9, 0, Math.PI * 2);
+          ctx.fillStyle = '#060b18';
+          ctx.fill();
+
+          // Icon P
+          ctx.fillStyle = '#00D4FF';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('P', markerX, markerY);
+        }
+
+        // Hint text
+        if (!coords.lat && !coords.lng) {
+          ctx.fillStyle = 'rgba(0,212,255,0.3)';
+          ctx.font = '13px Noto Sans SC, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('点击地图选择位置', CANVAS_W / 2, CANVAS_H / 2);
+        }
+      }, [coords]);
+
+      useEffect(() => {
+        draw();
+      }, [draw]);
+
+      const handleCanvasClick = (e) => {
+        if (!selectingOnMap) return;
+        const canvas = canvasRef.current;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (CANVAS_W / rect.width);
+        const y = (e.clientY - rect.top) * (CANVAS_H / rect.height);
+        // Convert to approximate lat/lng
+        const lat = 31.22 + (y / 10000);
+        const lng = 121.47 - (x / 10000);
+        setCoords({ lat: parseFloat(lat.toFixed(6)), lng: parseFloat(lng.toFixed(6)) });
+        setSelectingOnMap(false);
+      };
+
+      const handleClearCoords = () => {
+        setCoords({ lat: null, lng: null });
+      };
+
+      const handleSave = () => {
+        if (!name.trim()) { alert('请输入停车点名称'); return; }
+        if (!location.trim()) { alert('请输入位置描述'); return; }
+        const newSpot = {
+          id: initialSpot?.id || ('p_' + Date.now()),
+          name,
+          location,
+          ...coords,
+        };
+        onSave(newSpot);
+      };
+
+      return (
+        <Modal title={initialSpot ? '编辑停车点' : '新建停车点'} onClose={onClose}>
+          <div style={{ padding: '18px 20px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+                  {initialSpot ? '编辑停车点' : '新建停车点'}
+                </h2>
+                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  配置停车点信息，用于车辆停靠
+                </p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+                <IconX />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ margin: '14px 20px', height: 1, background: 'linear-gradient(90deg, transparent, #1a3350, transparent)' }} />
+
+          <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6, display: 'block', fontFamily: 'Noto Sans SC, sans-serif' }}>停车点名称</label>
+              <input
+                className="input-base"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="如：停车场 A区、充电站 1号"
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6, display: 'block', fontFamily: 'Noto Sans SC, sans-serif' }}>位置描述</label>
+              <input
+                className="input-base"
+                value={location}
+                onChange={e => setLocation(e.target.value)}
+                placeholder="如：园区东北角、园区中心"
+              />
+            </div>
+
+
+
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif' }}>地图选点</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => setSelectingOnMap(!selectingOnMap)}
+                    style={{
+                      padding: '4px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+                      fontFamily: 'Noto Sans SC, sans-serif',
+                      background: selectingOnMap ? 'rgba(0,212,255,0.15)' : '#080f1e',
+                      border: `1.5px solid ${selectingOnMap ? '#00D4FF' : '#1a3350'}`,
+                      color: selectingOnMap ? '#00D4FF' : '#94a3b8',
+                      transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', gap: 4
+                    }}>
+                    <IconMapPin /> {selectingOnMap ? '点击地图选择' : '选择位置'}
+                  </button>
+                  {coords.lat && (
+                    <button onClick={handleClearCoords} style={{
+                      padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+                      background: '#080f1e', border: '1.5px solid #1a3350',
+                      color: '#ef4444', fontFamily: 'Noto Sans SC, sans-serif'
+                    }}>
+                      <IconTrash /> 清空
+                    </button>
+                  )}
+                </div>
+              </div>
+              {coords.lat && coords.lng && (
+                <div style={{ fontSize: 11, color: '#00D4FF', marginBottom: 6, fontFamily: 'monospace' }}>
+                  已选择: 纬度 {coords.lat} | 经度 {coords.lng}
+                </div>
+              )}
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_W}
+                height={CANVAS_H}
+                onClick={handleCanvasClick}
+                style={{
+                  width: '100%', height: 'auto', borderRadius: 10,
+                  border: `1.5px solid ${selectingOnMap ? '#00D4FF' : '#1a3350'}`,
+                  cursor: selectingOnMap ? 'crosshair' : 'default',
+                  transition: 'border-color 0.15s'
+                }}
+              />
+            </div>
+
+          </div>
+
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button onClick={onClose} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px solid #1a3350', color: '#94a3b8', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              取消
+            </button>
+            <button onClick={handleSave} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: 'linear-gradient(135deg, #0066FF, #0044CC)', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              保存
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // ─── Parking Spot View Modal ─────────────────────────────────────────────────
+
+    function ParkingSpotViewModal({ spot, onClose }) {
+      const canvasRef = useRef(null);
+
+      const CANVAS_W = 580;
+      const CANVAS_H = 200;
+
+      const draw = React.useCallback(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        // Background
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+        // Grid
+        const GRID = 40;
+        ctx.strokeStyle = 'rgba(30, 58, 95, 0.3)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= CANVAS_W; x += GRID) {
+          ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, CANVAS_H); ctx.stroke();
+        }
+        for (let y = 0; y <= CANVAS_H; y += GRID) {
+          ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CANVAS_W, y); ctx.stroke();
+        }
+
+        // Border
+        ctx.strokeStyle = '#1a3350';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(1, 1, CANVAS_W - 2, CANVAS_H - 2);
+
+        // Labels
+        ctx.fillStyle = '#334155';
+        ctx.font = '11px Inter, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText('A', 8, 8);
+        ctx.fillText('B', 278, 8);
+        ctx.fillText('C', 548, 8);
+
+        // Draw parking spot marker
+        const markerX = spot.lat ? Math.min(Math.max(((spot.lat - 31.22) * 10000), 50), CANVAS_W - 50) : CANVAS_W / 2;
+        const markerY = spot.lng ? Math.min(Math.max(((121.47 - spot.lng) * 10000), 50), CANVAS_H - 50) : CANVAS_H / 2;
+
+        // Glow
+        const gradient = ctx.createRadialGradient(markerX, markerY, 0, markerX, markerY, 40);
+        gradient.addColorStop(0, 'rgba(0,212,255,0.4)');
+        gradient.addColorStop(1, 'transparent');
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 40, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Outer circle
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 18, 0, Math.PI * 2);
+        ctx.fillStyle = '#00D4FF';
+        ctx.fill();
+
+        // Inner
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 12, 0, Math.PI * 2);
+        ctx.fillStyle = '#060b18';
+        ctx.fill();
+
+        // Icon P
+        ctx.fillStyle = '#00D4FF';
+        ctx.font = 'bold 14px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('P', markerX, markerY);
+
+        // Pulse ring animation
+        ctx.beginPath();
+        ctx.arc(markerX, markerY, 25, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0,212,255,0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }, [spot]);
+
+      useEffect(() => {
+        draw();
+      }, [draw]);
+
+      return (
+        <Modal title="停车点详情" onClose={onClose} width="max-w-2xl">
+          <div style={{ padding: '18px 20px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>
+                  停车点详情
+                </h2>
+                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  查看停车点基本信息和位置
+                </p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }}>
+                <IconX />
+              </button>
+            </div>
+          </div>
+
+          <div style={{ margin: '14px 20px', height: 1, background: 'linear-gradient(90deg, transparent, #1a3350, transparent)' }} />
+
+          <div style={{ padding: '0 20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Basic Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ background: '#080f1e', padding: '14px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>停车点名称</div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{spot.name}</div>
+              </div>
+              <div style={{ background: '#080f1e', padding: '14px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>位置描述</div>
+                <div style={{ fontSize: 14, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{spot.location}</div>
+              </div>
+            </div>
+
+            {/* Coordinates */}
+            {(spot.lat || spot.lng) && (
+              <div style={{ background: '#080f1e', padding: '14px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>坐标位置</div>
+                <div style={{ fontSize: 13, color: '#e2e8f0', fontFamily: 'monospace' }}>
+                  纬度: {spot.lat?.toFixed(6) || '--'} | 经度: {spot.lng?.toFixed(6) || '--'}
+                </div>
+              </div>
+            )}
+
+            {/* Map Preview */}
+            <div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8, fontFamily: 'Noto Sans SC, sans-serif' }}>位置预览</div>
+              <canvas
+                ref={canvasRef}
+                width={CANVAS_W}
+                height={CANVAS_H}
+                style={{ width: '100%', height: 'auto', borderRadius: 10, border: '1.5px solid #1a3350', cursor: 'default' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'center' }}>
+            <button onClick={onClose} style={{ padding: '8px 32px', borderRadius: 8, fontSize: 13, background: 'rgba(0,212,255,0.1)', border: '1.5px solid #1a3350', color: '#94a3b8', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              关闭
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // ─── Confirm Dialog ──────────────────────────────────────────────────────────
+
+    function ConfirmDialog({ title, message, onConfirm, onCancel }) {
+      return (
+        <Modal title={title} onClose={onCancel} width="max-w-sm">
+          <div style={{ padding: '20px' }}>
+            <p style={{ fontSize: 14, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif', lineHeight: 1.6 }}>{message}</p>
+          </div>
+          <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button onClick={onCancel} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: 'transparent', border: '1px solid #1a3350', color: '#94a3b8', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              取消
+            </button>
+            <button onClick={onConfirm} style={{ padding: '8px 20px', borderRadius: 8, fontSize: 13, background: '#ef4444', border: 'none', color: '#fff', cursor: 'pointer', fontFamily: 'Noto Sans SC, sans-serif' }}>
+              确认删除
+            </button>
+          </div>
+        </Modal>
+      );
+    }
+
+    // ─── Nav Components ─────────────────────────────────────────────────────────
+
+    function NavItem({ label, icon, active, onClick }) {
+      return (
+        <button onClick={onClick}
+          className={`nav-item w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 text-left ${active ? 'active text-cyan-400 bg-cyan-400/5 border-l-[3px] border-cyan-400' : 'text-gray-400 border-l-[3px] border-transparent'}`}>
+          {icon}
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    // ─── Main App ───────────────────────────────────────────────────────────────
+
+    function App() {
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [activeTab, setActiveTab] = useState('routes');
+
+      // Route states
+      const [routes, setRoutes] = useState(DEFAULT_ROUTES);
+      const [routeSearch, setRouteSearch] = useState('');
+      const [showRouteBuilder, setShowRouteBuilder] = useState(false);
+      const [editingRoute, setEditingRoute] = useState(null);
+      const [deletingRoute, setDeletingRoute] = useState(null);
+      const [viewingRoute, setViewingRoute] = useState(null);
+      const [showRouteView, setShowRouteView] = useState(false);
+
+      // Parking spot states
+      const [parkingSpots, setParkingSpots] = useState(DEFAULT_PARKING_SPOTS);
+      const [spotSearch, setSpotSearch] = useState('');
+      const [showSpotModal, setShowSpotModal] = useState(false);
+      const [editingSpot, setEditingSpot] = useState(null);
+      const [deletingSpot, setDeletingSpot] = useState(null);
+      const [viewingSpot, setViewingSpot] = useState(null);
+      const [showSpotView, setShowSpotView] = useState(false);
+
+      useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(timer);
+      }, []);
+
+      // Route handlers
+      const handleSaveRoute = (route) => {
+        setRoutes(prev => {
+          const exists = prev.find(r => r.id === route.id);
+          if (exists) return prev.map(r => r.id === route.id ? route : r);
+          return [...prev, route];
+        });
+        setShowRouteBuilder(false);
+        setEditingRoute(null);
+      };
+
+      const handleEditRoute = (route) => {
+        setEditingRoute(route);
+        setShowRouteBuilder(true);
+      };
+
+      const handleDeleteRoute = (route) => {
+        setRoutes(prev => prev.filter(r => r.id !== route.id));
+        setDeletingRoute(null);
+      };
+
+      // Parking spot handlers
+      const handleSaveSpot = (spot) => {
+        setParkingSpots(prev => {
+          const exists = prev.find(p => p.id === spot.id);
+          if (exists) return prev.map(p => p.id === spot.id ? spot : p);
+          return [...prev, spot];
+        });
+        setShowSpotModal(false);
+        setEditingSpot(null);
+      };
+
+      const handleEditSpot = (spot) => {
+        setEditingSpot(spot);
+        setShowSpotModal(true);
+      };
+
+      const handleDeleteSpot = (spot) => {
+        setParkingSpots(prev => prev.filter(p => p.id !== spot.id));
+        setDeletingSpot(null);
+      };
+
+      // Filter data
+      const filteredRoutes = routes.filter(r =>
+        r.label.toLowerCase().includes(routeSearch.toLowerCase()) ||
+        r.name?.toLowerCase().includes(routeSearch.toLowerCase())
+      );
+
+      const filteredSpots = parkingSpots.filter(p =>
+        p.name.toLowerCase().includes(spotSearch.toLowerCase()) ||
+        p.location.toLowerCase().includes(spotSearch.toLowerCase())
+      );
+
+      const getStatusBadge = (status) => {
+        const configs = {
+          normal: { bg: 'rgba(0,212,255,0.1)', color: '#00D4FF', text: '正常' },
+          full: { bg: 'rgba(255,107,107,0.1)', color: '#FF6B6B', text: '已满' },
+          idle: { bg: 'rgba(0,255,136,0.1)', color: '#00FF88', text: '空闲' },
+          disabled: { bg: 'rgba(100,116,139,0.1)', color: '#64748b', text: '停用' }
+        };
+        const cfg = configs[status] || configs.normal;
+        return <span style={{ padding: '2px 8px', borderRadius: 9999, fontSize: 11, background: cfg.bg, color: cfg.color }}>{cfg.text}</span>;
+      };
+
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <div className={(sidebarOpen ? 'w-56' : 'w-16') + ' bg-gradient-to-b from-[#0d1a2e] to-[#060b18] border-r border-[#1a3350] flex flex-col transition-all duration-300 flex-shrink-0'}>
+            <div className="p-4 border-b border-[#1a3350] flex items-center gap-3 min-h-[60px]">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              {sidebarOpen && <div className="text-sm font-semibold text-cyan-400 leading-tight">环卫智控<br /><span className="text-gray-500 text-xs font-normal">系统平台</span></div>}
+            </div>
+            <nav className="flex-1 py-3 flex flex-col gap-1">
+              <NavItem label="车辆管理" active={false} onClick={() => window.location.href = 'vehicles.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+              <NavItem label="作业列表" active={false} onClick={() => window.location.href = 'tasks.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
+                {/* 
+                <NavItem
+                label="作业监控"
+                active={false}
+                onClick={() => window.location.href = 'monitoring.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              */}
+              <NavItem
+                label="路线配置"
+                active={true}
+                onClick={() => {}}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              <NavItem label="地图管理" active={false} onClick={() => window.location.href = 'maps.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+              <NavItem label="prd文档" active={false} onClick={() => window.open('prd.html', '_blank')} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+
+            </nav>
+            <div className="p-3 border-t border-[#1a3350]">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">李</div>
+                {sidebarOpen && <div><div className="text-sm text-gray-300">李运营</div><div className="text-xs text-gray-500">调度员</div></div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Main */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top bar */}
+            <div className="h-14 bg-gradient-to-r from-[#0d1a2e] to-[#0a1220] border-b border-[#1a3350] flex items-center justify-between px-5 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition-colors p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div className="text-base font-semibold text-white glow-cyan tracking-wide">路线配置</div>
+                <span className="text-xs text-gray-500">{currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <span className="text-gray-500 font-mono">{currentTime.toLocaleTimeString('en-GB')}</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-5 overflow-auto">
+              {/* Tabs */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                <button className={`tab-btn ${activeTab === 'routes' ? 'active' : ''}`} onClick={() => setActiveTab('routes')}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <IconRoute /> 路线管理
+                  </span>
+                </button>
+                <button className={`tab-btn ${activeTab === 'parking' ? 'active' : ''}`} onClick={() => setActiveTab('parking')}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <IconMapPin /> 停车点管理
+                  </span>
+                </button>
+              </div>
+
+              {/* Route Management Tab */}
+              {activeTab === 'routes' && (
+                <div>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: '#475569', fontFamily: 'Inter, sans-serif' }}>共 {filteredRoutes.length} 条路线</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        <IconSearch style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                        <input
+                          className="input-base"
+                          style={{ paddingLeft: 32, width: 200 }}
+                          placeholder="搜索路线名称..."
+                          value={routeSearch}
+                          onChange={e => setRouteSearch(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        onClick={() => { setEditingRoute(null); setShowRouteBuilder(true); }}
+                        style={{
+                          padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                          background: 'rgba(0,212,255,0.1)', border: '1.5px solid #00D4FF',
+                          color: '#00D4FF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'Noto Sans SC, sans-serif', transition: 'all 0.15s'
+                        }}>
+                        <IconPlus /> 新建路线
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Route List */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+                    {filteredRoutes.map(route => (
+                      <div key={route.id} style={{
+                        background: 'linear-gradient(135deg, #0d1a2e 0%, #080f1e 100%)',
+                        border: '1px solid #1a3350', borderRadius: 12, padding: 16,
+                        transition: 'all 0.2s'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <IconRoute />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', fontFamily: 'Noto Sans SC, sans-serif' }}>{route.name || route.label}</div>
+                              <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
+                                约{route.dist}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => { setViewingRoute(route); setShowRouteView(true); }} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#00D4FF'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconEye />
+                            </button>
+                            <button onClick={() => handleEditRoute(route)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#00D4FF'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconEdit />
+                            </button>
+                            <button onClick={() => setDeletingRoute(route)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconTrash />
+                            </button>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>途经点：</span>
+                          {route.waypoints.length > 0 ? (
+                            route.waypoints.map((wp, i) => (
+                              <span key={i} style={{
+                                padding: '2px 8px', borderRadius: 4, fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif',
+                                background: i === 0 ? 'rgba(0,255,136,0.1)' : i === route.waypoints.length - 1 ? 'rgba(255,107,107,0.1)' : 'rgba(0,212,255,0.1)',
+                                color: i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF'
+                              }}>
+                                {wp.label}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: 11, color: '#334155', fontFamily: 'Noto Sans SC, sans-serif' }}>暂无途经点</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {filteredRoutes.length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px 0', color: '#334155', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                        {routeSearch ? '未找到匹配的路线' : '暂无路线，点击右上角「新建路线」创建'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Parking Spot Management Tab */}
+              {activeTab === 'parking' && (
+                <div>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 12, color: '#475569', fontFamily: 'Inter, sans-serif' }}>共 {filteredSpots.length} 个停车点</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div style={{ position: 'relative' }}>
+                        <IconSearch style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
+                        <input
+                          className="input-base"
+                          style={{ paddingLeft: 32, width: 200 }}
+                          placeholder="搜索停车点..."
+                          value={spotSearch}
+                          onChange={e => setSpotSearch(e.target.value)}
+                        />
+                      </div>
+                      <button
+                        onClick={() => { setEditingSpot(null); setShowSpotModal(true); }}
+                        style={{
+                          padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+                          background: 'rgba(0,212,255,0.1)', border: '1.5px solid #00D4FF',
+                          color: '#00D4FF', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                          fontFamily: 'Noto Sans SC, sans-serif', transition: 'all 0.15s'
+                        }}>
+                        <IconPlus /> 新建停车点
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Parking Spot List */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+                    {filteredSpots.map(spot => (
+                      <div key={spot.id} style={{
+                        background: 'linear-gradient(135deg, #0d1a2e 0%, #080f1e 100%)',
+                        border: '1px solid #1a3350', borderRadius: 12, padding: 16,
+                        transition: 'all 0.2s'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(0,212,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <IconMapPin />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', fontFamily: 'Noto Sans SC, sans-serif' }}>{spot.name}</div>
+                              <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif', marginTop: 2 }}>{spot.location}</div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button onClick={() => { setViewingSpot(spot); setShowSpotView(true); }} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#00D4FF'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconEye />
+                            </button>
+                            <button onClick={() => handleEditSpot(spot)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#00D4FF'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconEdit />
+                            </button>
+                            <button onClick={() => setDeletingSpot(spot)} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 4, transition: 'all 0.1s' }}
+                              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                              onMouseLeave={e => e.currentTarget.style.color = '#64748b'}>
+                              <IconTrash />
+                            </button>
+                          </div>
+                        </div>
+                        {/* 位置描述 */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, color: '#475569' }}>位置：</span>
+                          <span style={{ fontSize: 12, color: '#94a3b8' }}>{spot.location}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {filteredSpots.length === 0 && (
+                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '48px 0', color: '#334155', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                        {spotSearch ? '未找到匹配的停车点' : '暂无停车点，点击右上角「新建停车点」创建'}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Modals */}
+          {showRouteView && viewingRoute && (
+            <RouteViewModal
+              route={viewingRoute}
+              onClose={() => { setShowRouteView(false); setViewingRoute(null); }}
+            />
+          )}
+
+          {showRouteBuilder && (
+            <RouteBuilderModal
+              initialRoute={editingRoute}
+              onSave={handleSaveRoute}
+              onClose={() => { setShowRouteBuilder(false); setEditingRoute(null); }}
+            />
+          )}
+
+          {showSpotView && viewingSpot && (
+            <ParkingSpotViewModal
+              spot={viewingSpot}
+              onClose={() => { setShowSpotView(false); setViewingSpot(null); }}
+            />
+          )}
+
+          {showSpotModal && (
+            <ParkingSpotModal
+              initialSpot={editingSpot}
+              onSave={handleSaveSpot}
+              onClose={() => { setShowSpotModal(false); setEditingSpot(null); }}
+            />
+          )}
+
+          {deletingRoute && (
+            <ConfirmDialog
+              title="删除路线"
+              message={`确定要删除路线「${deletingRoute.name || deletingRoute.label}」吗？此操作不可恢复。`}
+              onConfirm={() => handleDeleteRoute(deletingRoute)}
+              onCancel={() => setDeletingRoute(null)}
+            />
+          )}
+
+          {deletingSpot && (
+            <ConfirmDialog
+              title="删除停车点"
+              message={`确定要删除停车点「${deletingSpot.name}」吗？此操作不可恢复。`}
+              onConfirm={() => handleDeleteSpot(deletingSpot)}
+              onCancel={() => setDeletingSpot(null)}
+            />
+          )}
+        </div>
+      );
+    }
+
+    // ─── Render ──────────────────────────────────────────────────────────────────
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,2697 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>无人驾驶环卫作业车监控系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@7.5.2/ol.css">
+  <script src="https://cdn.jsdelivr.net/npm/ol@7.5.2/dist/ol.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #060b18;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1424;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+      border-radius: 2px;
+    }
+
+    .glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+    }
+
+    .panel {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+    }
+
+    .panel-glow {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-item {
+      transition: all 0.2s;
+    }
+
+    .nav-item.active {
+      background: rgba(0, 212, 255, 0.08);
+      border-left: 3px solid #00D4FF;
+    }
+
+    .status-blink {
+      animation: blink 1.5s infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.4
+      }
+    }
+
+    .gauge-ring {
+      stroke-dasharray: 220 60;
+      transition: all 0.5s ease;
+    }
+
+    .progress-fill {
+      transition: width 0.3s ease;
+    }
+
+    /* OpenLayers 地图容器样式 */
+    .ol-map {
+      position: relative !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .ol-viewport {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .ol-layer {
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .alert-pulse {
+      animation: alertPulse 1s infinite;
+    }
+
+    @keyframes alertPulse {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.5
+      }
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.94) translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .modal-animate {
+      animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .modal-overlay {
+      background: rgba(6, 11, 24, 0.88);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-box {
+      background: linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+      border-radius: 16px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-family: 'Noto Sans SC', 'Inter', sans-serif;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: 'Inter', sans-serif;
+      margin-bottom: 10px;
+    }
+
+    .mode-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(0, 212, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .mode-card.active {
+      border-color: var(--mode-color, #00D4FF);
+      background: color-mix(in srgb, var(--mode-color, #00D4FF) 8%, #080f1e);
+    }
+
+    .sub-btn {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Noto Sans SC', sans-serif;
+      white-space: nowrap;
+    }
+
+    .sub-btn:hover {
+      border-color: rgba(0, 212, 255, 0.4);
+      color: #e2e8f0;
+    }
+
+    .sub-btn.sel {
+      border-color: var(--sub-color, #00D4FF);
+      color: var(--sub-color, #00D4FF);
+      background: color-mix(in srgb, var(--sub-color, #00D4FF) 10%, #080f1e);
+      font-weight: 500;
+    }
+
+    .sub-btn.independent {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+    }
+
+    .sub-btn.independent:hover {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .sub-btn.independent.sel {
+      border-color: #f59e0b;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+      font-weight: 500;
+    }
+
+    .status-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .status-card:hover {
+      border-color: #3a5070;
+    }
+
+    .status-card.sel {
+      border-color: var(--sc, #00D4FF);
+      background: color-mix(in srgb, var(--sc, #00D4FF) 8%, #080f1e);
+    }
+
+    .status-dot-sm {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #3a5070;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      margin-top: 1px;
+    }
+
+    .status-card.sel .status-dot-sm {
+      border-color: var(--sc, #00D4FF);
+      background: var(--sc, #00D4FF);
+      box-shadow: 0 0 8px var(--sc, #00D4FF);
+    }
+
+    .light-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 14px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .light-card:hover {
+      border-color: #3a5070;
+    }
+
+    .light-card.on {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: rgba(251, 191, 36, 0.06);
+    }
+
+    .toggle-thumb {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: #1a3350;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin: 0 auto;
+    }
+
+    .toggle-thumb::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-thumb.on {
+      background: #f59e0b;
+    }
+
+    .toggle-thumb.on::after {
+      transform: translateX(16px);
+    }
+
+    .preview-bar {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .preview-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+    }
+
+    .glow-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+    }
+
+    .icon-close {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      background: transparent;
+      border: 1px solid #1a3350;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .icon-close:hover {
+      background: #1a3350;
+      color: #e2e8f0;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #1a3350;
+      color: #94a3b8;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: #00D4FF;
+      color: #00D4FF;
+      background: rgba(0, 212, 255, 0.06);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0066FF, #0044CC);
+      transition: all 0.2s;
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ================== 仪表盘组件 ==================
+    function Dashboard({ upperControlData, SUB_MODES }) {
+      const [battery, setBattery] = useState(72);
+      const [waterLevel, setWaterLevel] = useState(85);
+      const [progress, setProgress] = useState(65);
+      const [alerts, setAlerts] = useState([
+        { id: 1, level: 'error', title: '左扫盘异常', desc: '左扫盘转速过高', time: '04:21:30' },
+        { id: 2, level: 'warning', title: '低电量警告', desc: '电池电量低于 20%', time: '04:15:00' },
+        // { id: 3, level: 'info', title: '途经点接近', desc: '距离D点约 500m', time: '04:10:00' },
+      ]);
+
+      useEffect(() => {
+        const interval = setInterval(() => {
+          setBattery(prev => Math.max(15, prev - 0.01));
+          setWaterLevel(prev => Math.max(20, prev - 0.02));
+          setProgress(prev => Math.min(100, prev + 0.01));
+        }, 2000);
+        return () => clearInterval(interval);
+      }, []);
+
+      const levelColors = {
+        error: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400' },
+        warning: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
+        info: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' },
+      };
+
+      return (
+        <div className="panel panel-glow rounded-lg p-1.5 h-full flex flex-col overflow-hidden">
+          {/* 标题 */}
+          <div className="flex items-center justify-between mb-0.5">
+            <span className="text-xs text-cyan-400 font-medium">车辆仪表盘</span>
+            <span className="text-xs text-gray-400 font-medium">鲁B8888</span>
+          </div>
+
+          {/* 仪表盘图片 */}
+          <div className="flex items-center justify-center overflow-hidden flex-shrink-0" style={{ maxHeight: '120px' }}>
+            <img
+              src="assets/dashboard.png"
+              alt="车辆仪表盘"
+              className="object-contain rounded"
+              style={{ transform: 'scale(0.7)', transformOrigin: 'center center' }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+            <div className="hidden flex-col items-center justify-center text-gray-500 text-xs">
+              <span>仪表盘图片</span>
+            </div>
+          </div>
+
+          {/* 灯光图标指示 */}
+          <div className="flex items-center justify-center gap-4 py-0.5 flex-shrink-0">
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-400/20 border border-yellow-400 flex items-center justify-center" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.4)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              </div>
+              <span className="text-xs text-yellow-400">工作灯</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-400/20 border border-yellow-400 flex items-center justify-center" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.4)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="3">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </div>
+              <span className="text-[10px] text-yellow-400">左箭头</span>
+            </div>
+            <div className="flex flex-col items-center gap-0.5">
+              <div className="w-6 h-6 rounded-full bg-yellow-400/20 border border-yellow-400 flex items-center justify-center" style={{ boxShadow: '0 0 8px rgba(251,191,36,0.4)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="3">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+              <span className="text-[10px] text-yellow-400">右箭头</span>
+            </div>
+          </div>
+
+          {/* 车辆状态 */}
+          <div className="flex items-center mb-0.5">
+            <span className="text-[10px] text-red-400 font-medium">车辆状态</span>
+          </div>
+          <div className="grid grid-cols-4 gap-0.5 flex-shrink-0">
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">自驾状态</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">开启</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">车速</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">25km/h</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">电量</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">75%</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">档位</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">D</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">钥匙电源</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">ON/OFF</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">EPB状态</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">P</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">整车高压</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">已连接</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">门锁状态</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">解锁</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">车门开关</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">开启</div>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="border-t border-[#1a3350] my-0.5"></div>
+
+          {/* 状态指标 */}
+          <div className="flex items-center mb-0.5">
+            <span className="text-[10px] text-red-400 font-medium">上装状态</span>
+          </div>
+          <div className="grid grid-cols-3 gap-0.5 flex-shrink-0">
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">高压状态</div>
+              <div className="text-[10px] font-bold text-yellow-400 leading-tight">开启</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">油泵状态</div>
+              <div className="text-[10px] font-bold leading-tight" style={{ color: upperControlData.enable ? '#64748b' : '#00FF88' }}>
+                {upperControlData.enable ? '关闭' : '开启'}
+              </div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">工作模式</div>
+              <div className="text-[10px] font-bold text-cyan-400 leading-tight">
+                {upperControlData.workMode === 'sweep_wash' ? '洗扫' : upperControlData.workMode === 'pure_wash' ? '纯洗' : '干扫'}
+              </div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">子作业模式</div>
+              <div className="text-[10px] font-bold text-yellow-400 leading-tight">左洗扫 中喷杆</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">作业模式</div>
+              <div className="text-[10px] font-bold leading-tight" style={{ color: upperControlData.jobStatus === 'standard' ? '#3b82f6' : '#a855f7' }}>
+                {upperControlData.jobStatus === 'standard' ? '标准' : '增强'}
+              </div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">风机转速</div>
+              <div className="text-[10px] font-bold text-yellow-400 leading-tight">2500rpm</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">水泵转速</div>
+              <div className="text-[10px] font-bold text-yellow-400 leading-tight">2500rpm</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">齿轮泵转速</div>
+              <div className="text-[10px] font-bold text-yellow-400 leading-tight">2500rpm</div>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="border-t border-[#1a3350] my-0.5"></div>
+
+          {/* 上装报警状态 */}
+          <div className="grid grid-cols-4 gap-0.5 flex-shrink-0">
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">水位低</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">正常</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">污水箱满</div>
+              <div className="text-[10px] font-bold text-red-400 leading-tight">报警</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">风机电机</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">正常</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">水泵电机</div>
+              <div className="text-[10px] font-bold text-red-400 leading-tight">报警</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">液压泵电机</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">正常</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">液位传感器</div>
+              <div className="text-[10px] font-bold text-green-400 leading-tight">正常</div>
+            </div>
+            <div className="bg-[#0a1220] rounded p-0.5 border border-[#1a3350] text-center">
+              <div className="text-[9px] text-gray-500 leading-tight">水路球阀</div>
+              <div className="text-[10px] font-bold text-red-400 leading-tight">报警</div>
+            </div>
+          </div>
+
+          {/* 分隔线 */}
+          <div className="border-t border-[#1a3350] my-0.5"></div>
+
+          {/* 故障报警信息 */}
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-[10px] text-cyan-400 font-medium">故障报警</span>
+              <span className="text-[10px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">
+                {alerts.filter(a => a.level === 'error' || a.level === 'warning').length} 条
+              </span>
+            </div>
+            <div className="flex-1 overflow-auto space-y-0.5 min-h-0">
+              {alerts.map(alert => {
+                const colors = levelColors[alert.level];
+                return (
+                  <div key={alert.id} className={`${colors.bg} border ${colors.border} rounded p-1`}>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[10px] font-medium ${colors.text}`}>{alert.title}</span>
+                      <span className="text-[9px] text-gray-500 font-mono">{alert.time}</span>
+                    </div>
+                    <p className="text-[9px] text-gray-400 mt-0.5">{alert.desc}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 视频监控组件 ==================
+    function VideoMonitor({ compact = false }) {
+      const [cameras] = useState([
+        { id: 'CAM-01', label: '前置摄像头', active: true },
+        { id: 'CAM-02', label: '后置摄像头', active: true },
+        { id: 'CAM-03', label: '左侧摄像头', active: true },
+        { id: 'CAM-04', label: '右侧摄像头', active: false },
+      ]);
+
+      return (
+        <div className="panel panel-glow rounded-lg p-4 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm text-cyan-400 font-medium">视频</span>
+            <span className="text-xs text-green-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 status-blink inline-block"></span>
+              REC 04:23:15
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 flex-1">
+            {cameras.map(cam => (
+              <div key={cam.id} className="relative rounded overflow-hidden border" style={{ aspectRatio: '16/9', borderColor: cam.active ? '#00D4FF' : '#1a3350' }}>
+                <div className="absolute inset-0" style={{ background: cam.active ? '#0d1525' : '#080c14' }}>
+                  {cam.active ? (
+                    <svg viewBox="0 0 160 90" className="w-full h-full opacity-60">
+                      <rect fill="#101a2a" width="160" height="90" />
+                      <polygon fill="#1a2d42" points="70,30 70,60 90,45" />
+                      <line x1="0" y1="45" x2="70" y2="45" stroke="#1a3350" strokeWidth="1" />
+                      <line x1="90" y1="45" x2="160" y2="45" stroke="#1a3350" strokeWidth="1" />
+                      <line x1="80" y1="0" x2="80" y2="90" stroke="#1a3350" strokeWidth="1" />
+                      <rect x="15" y="20" width="30" height="20" fill="#0d1a2e" stroke="#1a3350" strokeWidth="1" rx="2" />
+                      <rect x="115" y="15" width="25" height="18" fill="#0d1a2e" stroke="#1a3350" strokeWidth="1" rx="2" />
+                      <rect x="60" y="50" width="40" height="25" fill="#0d1a2e" stroke="#00D4FF" strokeWidth="1" rx="2" opacity="0.5" />
+                    </svg>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-gray-600 text-xs">无信号</span>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-medium" style={{ background: 'rgba(0,0,0,0.6)', color: cam.active ? '#00D4FF' : '#4a6080' }}>{cam.id}</div>
+                <div className="absolute bottom-0 left-0 right-0 px-2 py-1" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
+                  <span className="text-xs" style={{ color: cam.active ? '#00D4FF' : '#4a6080' }}>{cam.label}</span>
+                  {cam.active && <span className="float-right text-xs text-red-400">●REC</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 视频监控布局组件 (竖向排列6个) ==================
+    function VideoMonitorLayout() {
+      const [cameras] = useState([
+        { id: 'CAM-01', label: '前置摄像头', active: true },
+        { id: 'CAM-02', label: '后置摄像头', active: true },
+        { id: 'CAM-03', label: '左侧摄像头', active: true },
+        { id: 'CAM-04', label: '右侧摄像头', active: true },
+        { id: 'CAM-05', label: '作业摄像头', active: true },
+        { id: 'CAM-06', label: '鸟瞰摄像头', active: false },
+      ]);
+
+      return (
+        <div className="panel panel-glow rounded-lg p-1.5 h-full flex flex-col">
+          <div className="flex items-center justify-between mb-1 px-1 flex-shrink-0">
+            <span className="text-xs text-cyan-400 font-medium">视频抓拍(10s)</span>
+            {/*
+            <span className="text-xs text-green-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 status-blink inline-block"></span>
+              REC
+            </span>
+            */}
+          </div>
+          <div className="flex-1 overflow-auto space-y-1">
+            {cameras.map(cam => (
+              <div key={cam.id} className="relative rounded overflow-hidden border" style={{ aspectRatio: '16/11', borderColor: cam.active ? '#00D4FF' : '#1a3350' }}>
+                <div className="absolute inset-0" style={{ background: cam.active ? '#0d1525' : '#080c14' }}>
+                  {cam.active ? (
+                    <svg viewBox="0 0 160 108" className="w-full h-full opacity-50">
+                      <rect fill="#101a2a" width="160" height="108" />
+                      <polygon fill="#1a2d42" points="70,36 70,72 90,54" />
+                      <line x1="0" y1="54" x2="70" y2="54" stroke="#1a3350" strokeWidth="1" />
+                      <line x1="90" y1="54" x2="160" y2="54" stroke="#1a3350" strokeWidth="1" />
+                      <line x1="80" y1="0" x2="80" y2="108" stroke="#1a3350" strokeWidth="1" />
+                      <rect x="60" y="60" width="40" height="30" fill="#0d1a2e" stroke="#00D4FF" strokeWidth="1" rx="2" opacity="0.5" />
+                    </svg>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-gray-600 text-xs">无信号</span>
+                    </div>
+                  )}
+                </div>
+                <div className="absolute top-1 left-1 px-1 py-0.5 rounded text-xs font-medium" style={{ background: 'rgba(0,0,0,0.7)', color: cam.active ? '#00D4FF' : '#4a6080' }}>{cam.id}</div>
+                <div className="absolute bottom-0 left-0 right-0 px-1.5 py-0.5" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.8), transparent)' }}>
+                  <span className="text-xs" style={{ color: cam.active ? '#00D4FF' : '#4a6080' }}>{cam.label}</span>
+                  {/*{cam.active && <span className="float-right text-xs text-red-400">●REC</span>}*/}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+
+
+    // ================== 地图组件 ==================
+    function MonitorMap({ waypoints, actualPath, vehiclePos, vehicleAngle, currentSpeed, setSpeed, isPlaying, setIsPlaying, cycleProgress }) {
+      const mapRef = useRef(null);
+      const mapInstance = useRef(null);
+      const vehicleMarkerRef = useRef(null);
+      const pathLayerRef = useRef(null);
+      const waypointLayerRef = useRef(null);
+      const [mapLoaded, setMapLoaded] = useState(false);
+      const [mapError, setMapError] = useState(null);
+
+      useEffect(() => {
+        if (!mapRef.current || mapInstance.current) return;
+
+        // 地图瓦片地址 - GeoTIFF 免切片服务
+        const tileUrl = 'https://api3.geovisearth.com/titiler-release/cog/tile/{z}/{x}/{y}?url=s3://geovisdrive/upload/20250508/1517ac52-e30b-4e83-b022-aab0e30d79d4.drive.cog.tif';
+
+        // 计算途经点中心点
+        const centerLon = (119.495759 + 119.496037) / 2;
+        const centerLat = (35.625953 + 35.624877) / 2;
+
+        // 创建地图实例
+        const map = new ol.Map({
+          target: mapRef.current,
+          view: new ol.View({
+            center: ol.proj.fromLonLat([centerLon, centerLat]),
+            zoom: 16,
+            maxZoom: 23,
+            minZoom: 1,
+          }),
+          controls: [
+            new ol.control.Zoom(), // 添加放大缩小控件
+          ],
+        });
+
+        // 添加天地图底图（CGCS2000 坐标系，与 WGS84 基本一致，无偏移）
+        
+        const vecLayer = new ol.layer.Tile({
+          source: new ol.source.XYZ({
+            url: `https://t0.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=6fa14bd50b2d9f7d27010d272baf685c`,
+            maxZoom: 18
+          })
+        });
+        const cvaLayer = new ol.layer.Tile({
+          source: new ol.source.XYZ({
+            url: `https://t0.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=6fa14bd50b2d9f7d27010d272baf685c`,
+            maxZoom: 18
+          })
+        });
+        map.addLayer(vecLayer);
+        map.addLayer(cvaLayer);
+
+        // 添加 WFS 矢量图层（红色边框 + 黄色填充）
+        const wfsSource = new ol.source.Vector({
+          format: new ol.format.GeoJSON(),
+          loader: function(extent, resolution, projection, success, failure) {
+            const extent4326 = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
+            const bbox = extent4326.join(',');
+            const url = 'https://eserver5.geovisearth.com/4/e-server/wfs' +
+              '?service=WFS&version=1.0.0&request=GetFeature' +
+              '&typename=WP-2065252339390451712' +
+              '&outputFormat=application/json' +
+              '&srsname=EPSG:4326' +
+              '&bbox=' + bbox;
+            fetch(url)
+              .then(function(response) { return response.json(); })
+              .then(function(data) {
+                var features = wfsSource.getFormat().readFeatures(data, {
+                  dataProjection: 'EPSG:4326',
+                  featureProjection: 'EPSG:3857',
+                });
+                wfsSource.addFeatures(features);
+                success(features);
+              })
+              .catch(failure);
+          },
+          strategy: ol.loadingstrategy.bbox,
+        });
+
+        const wfsLayer = new ol.layer.Vector({
+          source: wfsSource,
+          style: new ol.style.Style({
+            fill: new ol.style.Fill({
+              color: 'transparent',
+            }),
+            stroke: new ol.style.Stroke({
+              color: '#FF0000',
+              width: 3,
+            }),
+          }),
+          minZoom: 1,
+          maxZoom: 23,
+          opacity: 1,
+          zIndex: 1,
+          declutter: true,
+        });
+        map.addLayer(wfsLayer);
+
+        // 添加 GeoTIFF 图层
+        const BeijingRoad = new ol.layer.Tile({
+          source: new ol.source.XYZ({
+            url: tileUrl,
+            crossOrigin: 'anonymous',
+          }),
+          minZoom: 16, // 最小缩放级别（当地图缩放级别小于16时隐藏）
+          maxZoom: 23, // 最大缩放级别（当地图缩放级别大于21时隐藏）
+          opacity: 0.9,
+          zIndex: 0,
+        });
+        map.addLayer(BeijingRoad);
+
+        // 确保地图正确渲染
+        map.on('rendercomplete', () => {
+          setMapLoaded(true);
+          setMapError(null);
+        });
+
+        map.on('error', (e) => {
+          console.error('地图错误:', e);
+          setMapError('地图加载失败');
+        });
+
+        // 触发一次渲染
+        map.updateSize();
+
+        mapInstance.current = map;
+
+        return () => {
+          if (mapInstance.current) {
+            mapInstance.current.setTarget(null);
+            mapInstance.current = null;
+          }
+        };
+      }, []);
+
+      // 监听窗口大小变化，确保地图正确适应容器
+      useEffect(() => {
+        if (!mapInstance.current) return;
+
+        const handleResize = () => {
+          mapInstance.current.updateSize();
+        };
+
+        window.addEventListener('resize', handleResize);
+        // 延迟触发一次更新，确保容器已渲染
+        const timer = setTimeout(handleResize, 100);
+
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          clearTimeout(timer);
+        };
+      }, [mapLoaded]);
+
+      // 更新途经点和轨迹
+      useEffect(() => {
+        if (!mapInstance.current) return;
+
+        const map = mapInstance.current;
+
+        // 清除旧的途经点图层
+        if (waypointLayerRef.current) {
+          map.removeLayer(waypointLayerRef.current);
+        }
+
+        // 创建途经点图层
+        const waypointFeatures = waypoints.map((wp, index) => {
+          const coords = ol.proj.fromLonLat([wp.lon || wp.x, wp.lat || wp.y]);
+          const feature = new ol.Feature({
+            geometry: new ol.geom.Point(coords),
+            name: wp.name || wp.label,
+            completed: wp.completed,
+            index: index,
+          });
+
+          feature.setStyle(new ol.style.Style({
+            image: new ol.style.Circle({
+              radius: 10,
+              fill: new ol.style.Fill({
+                color: wp.completed ? '#00FF88' : '#00D4FF',
+              }),
+              stroke: new ol.style.Stroke({
+                color: '#ffffff',
+                width: 2,
+              }),
+            }),
+            text: new ol.style.Text({
+              text: wp.label,
+              fill: new ol.style.Fill({ color: '#ffffff' }),
+              font: 'bold 12px Arial',
+              offsetY: -20,
+              textAlign: 'center',
+            }),
+          }));
+
+          return feature;
+        });
+
+        const waypointSource = new ol.source.Vector({
+          features: waypointFeatures,
+        });
+
+        waypointLayerRef.current = new ol.layer.Vector({
+          source: waypointSource,
+          zIndex: 10,
+        });
+
+        map.addLayer(waypointLayerRef.current);
+
+        // 清除旧的轨迹图层
+        if (pathLayerRef.current) {
+          map.removeLayer(pathLayerRef.current);
+        }
+
+        // 创建轨迹线
+        if (actualPath.length > 1) {
+          const pathCoords = actualPath.map(p => ol.proj.fromLonLat([p.lon || p.x, p.lat || p.y]));
+          const pathFeature = new ol.Feature({
+            geometry: new ol.geom.LineString(pathCoords),
+          });
+
+          pathFeature.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: '#FFD700',
+              width: 4,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }),
+          }));
+
+          const pathSource = new ol.source.Vector({
+            features: [pathFeature],
+          });
+
+          pathLayerRef.current = new ol.layer.Vector({
+            source: pathSource,
+            zIndex: 5,
+          });
+
+          map.addLayer(pathLayerRef.current);
+        }
+
+        // 调整视图到包含所有点
+        if (waypoints.length > 0) {
+          const allCoords = [
+            ...waypoints.map(wp => ol.proj.fromLonLat([wp.lon || wp.x, wp.lat || wp.y])),
+            ...actualPath.map(p => ol.proj.fromLonLat([p.lon || p.x, p.lat || p.y])),
+          ];
+          if (allCoords.length > 0) {
+            const extent = ol.extent.boundingExtent(allCoords);
+            map.getView().fit(extent, {
+              maxZoom: 23,
+              duration: 500,
+              padding: [50, 50, 50, 50] 
+            });
+          }
+        }
+
+      }, [waypoints, actualPath]);
+
+      // 更新车辆位置
+      useEffect(() => {
+        if (!mapInstance.current || !vehiclePos) return;
+
+        const map = mapInstance.current;
+        const coords = ol.proj.fromLonLat([vehiclePos.lon || vehiclePos.x, vehiclePos.lat || vehiclePos.y]);
+
+        if (vehicleMarkerRef.current) {
+          vehicleMarkerRef.current.getGeometry().setCoordinates(coords);
+          vehicleMarkerRef.current.getStyle().getImage().setRotation((vehicleAngle || 0) * Math.PI / 180);
+        } else {
+          const vehicleFeature = new ol.Feature({
+            geometry: new ol.geom.Point(coords),
+          });
+
+          vehicleFeature.setStyle(new ol.style.Style({
+            image: new ol.style.Icon({
+              src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(`
+                <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="30" cy="30" r="28" fill="rgba(0,255,136,0.4)" stroke="rgba(0,255,136,0.8)" stroke-width="3"/>
+                  <circle cx="30" cy="30" r="20" fill="rgba(0,255,136,0.25)"/>
+                  <polygon points="30,8 16,44 30,36 44,44" fill="#00FF88" stroke="#ffffff" stroke-width="2"/>
+                </svg>
+              `),
+              scale: 0.7,
+              rotation: (vehicleAngle || 0) * Math.PI / 180,
+              anchor: [0.5, 0.5],
+            }),
+            text: new ol.style.Text({
+              text: '鲁B8888',
+              fill: new ol.style.Fill({ color: '#ffffff' }),
+              stroke: new ol.style.Stroke({ color: '#000000', width: 4 }),
+              font: 'bold 13px Inter, system-ui, sans-serif',
+              offsetY: 28,
+              textAlign: 'center',
+            }),
+          }));
+
+          const vehicleSource = new ol.source.Vector({
+            features: [vehicleFeature],
+          });
+
+          const vehicleLayer = new ol.layer.Vector({
+            source: vehicleSource,
+            zIndex: 100,
+          });
+
+          map.addLayer(vehicleLayer);
+          vehicleMarkerRef.current = vehicleFeature;
+        }
+
+        // 移动视图中心到车辆位置
+        // map.getView().animate({
+        //   center: coords,
+        //   duration: 300,
+        // });
+
+      }, [vehiclePos, vehicleAngle]);
+
+      return (
+        <div className="relative w-full h-full">
+          {/* 作业进度条 */}
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-black/70 backdrop-blur rounded-lg max-w-[540px] w-full">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400 flex-shrink-0">作业进度</span>
+              <div className="flex-1 h-1.5 bg-[#1a3350] rounded-full overflow-hidden">
+                <div className="h-full" style={{ width: `${cycleProgress}%`, background: 'linear-gradient(90deg, #00D4FF, #00FF88)' }} />
+              </div>
+              <span className="text-xs text-cyan-400 font-medium">{cycleProgress}%</span>
+            </div>
+          </div>
+          {/* OpenLayers 地图容器 */}
+          <div ref={mapRef} className="w-full h-full" style={{ background: '#0a1220' }} />
+          {/* 加载状态提示 */}
+          {!mapLoaded && !mapError && (
+            <div className="absolute inset-0 flex items-center justify-center z-20" style={{ background: 'rgba(10,18,32,0.9)' }}>
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-sm text-gray-400">正在加载地图...</span>
+              </div>
+            </div>
+          )}
+          {mapError && (
+            <div className="absolute inset-0 flex items-center justify-center z-20" style={{ background: 'rgba(10,18,32,0.9)' }}>
+              <div className="flex flex-col items-center gap-3 text-center px-4">
+                <svg className="w-12 h-12 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm text-yellow-400">{mapError}</span>
+                <span className="text-xs text-gray-500">已使用备用地图源</span>
+              </div>
+            </div>
+          )}
+          {/* 播放控制栏 */}
+          <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur px-1.5 py-1 rounded-md flex items-center gap-1.5 z-10">
+            <button
+              onClick={() => setIsPlaying(!isPlaying)}
+              className="w-5 h-5 rounded-full flex items-center justify-center transition-colors"
+              style={{ background: isPlaying ? 'rgba(0,212,255,0.2)' : 'rgba(0,255,136,0.2)', border: `1px solid ${isPlaying ? 'rgba(0,212,255,0.5)' : 'rgba(0,255,136,0.5)'}` }}
+            >
+              {isPlaying ? (
+                <svg className="w-2.5 h-2.5" fill="currentColor" style={{ color: '#00D4FF' }} viewBox="0 0 24 24">
+                  <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                </svg>
+              ) : (
+                <svg className="w-2.5 h-2.5" fill="currentColor" style={{ color: '#00FF88' }} viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              )}
+            </button>
+            <span className="text-[10px] text-gray-400 font-mono">00:00:00</span>
+            <div className="w-36 h-1 bg-[#1a3350] rounded-full overflow-hidden cursor-pointer">
+              <div className="h-full" style={{ width: '35%', background: 'linear-gradient(90deg, #00D4FF, #00FF88)' }} />
+            </div>
+            <span className="text-[10px] text-gray-400 font-mono">04:23:15</span>
+            <div className="w-px h-3 bg-[#1a3350]"></div>
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 4, 8].map(speed => (
+                <button
+                  key={speed}
+                  onClick={() => setSpeed(speed)}
+                  className="px-1 py-0.5 text-[10px] rounded transition-colors"
+                  style={{
+                    background: speed === currentSpeed ? '#00D4FF' : 'transparent',
+                    color: speed === currentSpeed ? '#000' : '#6b7280',
+                    border: `1px solid ${speed === currentSpeed ? '#00D4FF' : '#1a3350'}`,
+                  }}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* 图例 */}
+          <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur px-3 py-2 rounded-lg">
+            <div className="flex items-center gap-4 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span className="w-8 h-0.5 border-t-2 border-dashed border-blue-500 inline-block rounded"></span>
+                规划路径
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-8 h-0.5 inline-block rounded" style={{ background: '#FFD700' }}></span>
+                实际轨迹
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-cyan-400 inline-flex items-center justify-center text-black font-bold text-xs">A</span>
+                途经点
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="w-4 h-4 rounded-full bg-green-400 inline-flex items-center justify-center text-black font-bold text-xs">▲</span>
+                当前位置
+              </span>
+            </div>
+          </div>
+          {/* GPS状态 */}
+          <div className="absolute top-3 right-3 bg-black/60 backdrop-blur px-3 py-1.5 rounded-lg">
+            <span className="flex items-center gap-1.5 text-xs text-green-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 status-blink inline-block"></span>
+              GPS定位中
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 导航组件 ==================
+    function NavItem({ label, icon, active, onClick }) {
+      return (
+        <button onClick={onClick}
+          className={`nav-item w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 text-left ${active ? 'active text-cyan-400 bg-cyan-400/5 border-l-[3px] border-cyan-400' : 'text-gray-400 border-l-[3px] border-transparent'}`}>
+          {icon}
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    // ================== 主应用 ==================
+    function App() {
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [showVehiclePanel, setShowVehiclePanel] = useState(true); // 控制车辆仪表盘显示/隐藏
+      const [showVideoPanel, setShowVideoPanel] = useState(true); // 控制视频面板显示/隐藏
+      const [isPlaying, setIsPlaying] = useState(true);
+      const [currentSpeed, setSpeed] = useState(1);
+      const [vehicleStatus, setVehicleStatus] = useState('idle'); // idle, running, paused_local, paused_parking, terminated
+      const [showParkingModal, setShowParkingModal] = useState(false);
+      const [showModifyModal, setShowModifyModal] = useState(false);
+      const [modifyData, setModifyData] = useState({ sweepCount: 2, route: '清扫路线一' });
+      const [showDebugModal, setShowDebugModal] = useState(false);
+      const [showDebugPanel, setShowDebugPanel] = useState(false);
+      const [showDebugVehicleDropdown, setShowDebugVehicleDropdown] = useState(false);
+      const [debugActiveVehicle, setDebugActiveVehicle] = useState('鲁B8888');
+      const debugVehicleDropdownRef = useRef(null);
+      const [selectedParkingPoint, setSelectedParkingPoint] = useState('');
+      const [showBreakpointModal, setShowBreakpointModal] = useState(false);
+      const [showUpperControlModal, setShowUpperControlModal] = useState(false);
+      const [showModifyPanel, setShowModifyPanel] = useState(false);
+      const [showDispatchPanel, setShowDispatchPanel] = useState(false);
+      const [showUpperPanel, setShowUpperPanel] = useState(false);
+      const [activeCameraView, setActiveCameraView] = useState(null); // null, 'front', 'back', 'left', 'right'
+      const [isFullscreen, setIsFullscreen] = useState(false);
+      const [cameraViews] = useState([
+        { id: 'front', label: '前视', icon: 'forward' },
+        { id: 'back', label: '后视', icon: 'backward' },
+        { id: 'left', label: '左视', icon: 'turn-left' },
+        { id: 'right', label: '右视', icon: 'turn-right' },
+      ]);
+
+      // 底部操作按钮配置 - 开始不变，暂停/继续切换
+      const getBottomActions = () => {
+        const actions = [];
+        // 开始按钮 - 始终不变
+        actions.push(
+          { label: '开始', icon: 'play', color: '#00FF88', bg: 'rgba(0,255,136,0.15)', border: 'rgba(0,255,136,0.4)', action: () => setVehicleStatus('running') }
+        );
+        // 暂停/继续按钮 - 根据状态切换
+        if (vehicleStatus === 'running') {
+          actions.push(
+            { label: '暂停', icon: 'pause', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)', action: handlePauseLocal }
+          );
+        } else {
+          actions.push(
+            { label: '继续', icon: 'continue', color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.4)', action: handleContinue }
+          );
+        }
+        // 终止按钮
+        actions.push(
+          { label: '终止', icon: 'stop', color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)', action: handleTerminate }
+        );
+        return actions;
+      };
+
+      // 渲染底部操作按钮图标
+      const renderActionIcon = (icon) => {
+        const iconMap = {
+          'play': <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21" /></svg>,
+          'pause': <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>,
+          'continue': <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 15,12 5,21" /><line x1="19" y1="3" x2="19" y2="21" stroke="currentColor" strokeWidth="3" /></svg>,
+          'stop': <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>,
+          'breakpoint': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" /></svg>,
+          'send': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="22" y1="2" x2="11" y2="13" /><polygon points="22,2 15,22 11,13 2,9" /></svg>,
+          'config': <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>,
+        };
+        return iconMap[icon] || null;
+      };
+
+      // 渲染摄像头视角图标
+      const renderCameraIcon = (viewId) => {
+        const iconMap = {
+          'forward': <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="12,19 12,5" /><polyline points="5,12 12,5 19,12" /></svg>,
+          'backward': <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="12,5 12,19" /><polyline points="5,12 12,19 19,12" /></svg>,
+          'turn-left': <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15,18 9,12 15,6" /><polyline points="3,12 9,6 15,12" /></svg>,
+          'turn-right': <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9,18 15,12 9,6" /><polyline points="21,12 15,6 9,12" /></svg>,
+        };
+        return iconMap[viewId] || null;
+      };
+      const [showVehicleDropdown, setShowVehicleDropdown] = useState(false);
+      const [activeVehicle, setActiveVehicle] = useState(() => {
+        // 从 URL 参数获取车牌号
+        const params = new URLSearchParams(window.location.search);
+        const vehiclePlate = params.get('vehicle');
+        if (vehiclePlate) {
+          return { plate: decodeURIComponent(vehiclePlate), task: '作业监控', mode: '洗扫', progress: 65, status: 'running', enhanced: true };
+        }
+        return { plate: '鲁B8888', task: '港口洗扫作业', mode: '洗扫', progress: 65, status: 'running', enhanced: true };
+      });
+      const vehicleDropdownRef = useRef(null);
+
+      // 正在作业的其他车辆列表
+      const otherVehicles = [
+        { plate: '鲁B9999', task: '港口B区清洗作业', mode: '纯洗', progress: 90, status: 'running', enhanced: false },
+        { plate: '鲁B6666', task: '综合楼周边干扫', mode: '干扫', progress: 38, status: 'running', enhanced: true },
+        { plate: '鲁B7777', task: '仓库周边清扫', mode: '洗扫', progress: 72, status: 'paused', enhanced: false },
+      ];
+
+      // 根据 URL 参数自动选中对应车辆
+      useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const vehiclePlate = params.get('vehicle');
+        if (vehiclePlate) {
+          const decodedPlate = decodeURIComponent(vehiclePlate);
+          // 如果 URL 中的车牌不在 otherVehicles 中，自动添加到列表
+          const existsInOthers = otherVehicles.some(v => v.plate === decodedPlate);
+          if (!existsInOthers && decodedPlate !== '鲁B8888') {
+            otherVehicles.push({
+              plate: decodedPlate,
+              task: '作业监控',
+              mode: '洗扫',
+              progress: 65,
+              status: 'running',
+              enhanced: true
+            });
+          }
+          setActiveVehicle(prev => ({ ...prev, plate: decodedPlate }));
+          setShowVehicleDropdown(false);
+        }
+      }, []);
+
+      // 点击外部关闭下拉
+      useEffect(() => {
+        const handler = (e) => {
+          if (vehicleDropdownRef.current && !vehicleDropdownRef.current.contains(e.target)) {
+            setShowVehicleDropdown(false);
+          }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+      }, []);
+      const [upperControlData, setUpperControlData] = useState({
+        enable: false,
+        workMode: 'sweep_wash',
+        subModes: ['full_sweep'],
+        jobStatus: 'standard',
+        workLight: true,
+        leftSignal: false,
+        rightSignal: false,
+      });
+
+      // 子模式配置
+      const SUB_MODES = {
+        sweep_wash: [
+          { id: 'left_sweep', label: '左洗扫', exclusive: true },
+          { id: 'right_sweep', label: '右洗扫', exclusive: true },
+          { id: 'full_sweep', label: '全洗扫', exclusive: true },
+          { id: 'center_spray', label: '中喷杆', exclusive: false },
+        ],
+        pure_wash: [
+          { id: 'left_wash', label: '左清洗', exclusive: true },
+          { id: 'right_wash', label: '右清洗', exclusive: true },
+          { id: 'full_wash', label: '全清洗', exclusive: true },
+          { id: 'center_spray2', label: '中喷杆', exclusive: false },
+        ],
+        dry_sweep: [
+          { id: 'left_dry', label: '左干扫', exclusive: true },
+          { id: 'right_dry', label: '右干扫', exclusive: true },
+          { id: 'full_dry', label: '全干扫', exclusive: true },
+          { id: 'dust_mist', label: '降尘喷雾', exclusive: false },
+        ],
+      };
+
+      const handlePauseLocal = () => {
+        setIsPlaying(false);
+        setVehicleStatus('paused_local');
+      };
+
+      const handlePauseParking = () => {
+        setShowParkingModal(true);
+      };
+
+      const handleContinue = () => {
+        setIsPlaying(true);
+        setVehicleStatus('running');
+      };
+
+      const handleTerminate = () => {
+        if (confirm('确定要终止当前作业吗？')) {
+          setIsPlaying(false);
+          setVehicleStatus('terminated');
+        }
+      };
+
+      const handleSelectParking = (waypoint) => {
+        setShowParkingModal(false);
+        setIsPlaying(false);
+        setVehicleStatus('paused_parking');
+        alert(`已选择停车点：${waypoint.name}`);
+      };
+
+      const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.log('全屏切换失败:', err);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      };
+
+      // 模拟数据 - 使用经纬度坐标 (lon, lat)
+      // 起点: [119.495759, 35.625953], 终点: [119.496037, 35.624877]
+      const [waypoints] = useState([
+        { lon: 119.495759, lat: 35.625953, label: 'A', name: '起点', completed: true },
+        { lon: 119.495815, lat: 35.625745, label: 'B', name: '途经点1', completed: true },
+        { lon: 119.495871, lat: 35.625537, label: 'C', name: '途经点2', completed: false },
+        { lon: 119.495927, lat: 35.625329, label: 'D', name: '途经点3', completed: false },
+        { lon: 119.495983, lat: 35.625121, label: 'E', name: '途经点4', completed: false },
+        { lon: 119.496037, lat: 35.624877, label: 'F', name: '终点', completed: false },
+      ]);
+
+      const [actualPath, setActualPath] = useState([
+        { lon: 119.495759, lat: 35.625953 },
+        { lon: 119.495787, lat: 35.625849 },
+        { lon: 119.495815, lat: 35.625745 },
+        { lon: 119.495843, lat: 35.625641 },
+        { lon: 119.495871, lat: 35.625537 },
+        { lon: 119.495899, lat: 35.625433 },
+        { lon: 119.495927, lat: 35.625329 },
+        { lon: 119.495955, lat: 35.625225 },
+        { lon: 119.495983, lat: 35.625121 },
+        { lon: 119.496011, lat: 35.624999 },
+        { lon: 119.496037, lat: 35.624877 },
+      ]);
+
+      const [vehiclePos, setVehiclePos] = useState({ lon: 119.495759, lat: 35.625953 });
+      const [vehicleAngle, setVehicleAngle] = useState(90);
+      const [cycleProgress, setCycleProgress] = useState(0);
+
+      useEffect(() => {
+        const t = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(t);
+      }, []);
+
+      // 模拟车辆移动 - 循环经过所有途径点
+      const vehicleProgressRef = useRef(0);
+      useEffect(() => {
+        const interval = setInterval(() => {
+          // 计算总共经过几个途经点
+          const totalSegments = waypoints.length - 1; // 所有途经点构成的路段数
+          const currentSegment = Math.floor(vehicleProgressRef.current * totalSegments) % totalSegments;
+          const segmentProgress = (vehicleProgressRef.current * totalSegments) % 1;
+
+          const start = waypoints[currentSegment];
+          const end = waypoints[(currentSegment + 1) % waypoints.length];
+
+          const newLon = start.lon + (end.lon - start.lon) * segmentProgress;
+          const newLat = start.lat + (end.lat - start.lat) * segmentProgress;
+          setVehiclePos({ lon: newLon, lat: newLat });
+
+          // 计算车辆朝向角度（方位角）
+          // atan2(Δlon, Δlat) 直接得到从正北顺时针的方位角(度)
+          // SVG三角形顶点默认朝上(北)，与OpenLayers rotation方向一致，无需偏移
+          const deltaLon = end.lon - start.lon;
+          const deltaLat = end.lat - start.lat;
+          const angle = Math.atan2(deltaLon, deltaLat) * 180 / Math.PI;
+          setVehicleAngle(angle);
+
+          // 更新循环进度
+          setCycleProgress(Math.round(vehicleProgressRef.current * 100));
+
+          // 每600ms增加进度，走完一圈约需 600ms * 100 / speed
+          vehicleProgressRef.current += 0.01;
+          if (vehicleProgressRef.current >= 1) vehicleProgressRef.current = 0; // 循环
+        }, 600);
+        return () => clearInterval(interval);
+      }, [waypoints]);
+
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* 侧边栏 */}
+          <div className={(sidebarOpen ? 'w-52' : 'w-16') + ' bg-gradient-to-b from-[#0d1a2e] to-[#060b18] border-r border-[#1a3350] flex flex-col transition-all duration-300 flex-shrink-0'}>
+            <div className="p-4 border-b border-[#1a3350] flex items-center gap-3 min-h-[60px]">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              {sidebarOpen && <div className="text-sm font-semibold text-cyan-400 leading-tight">环卫智控<br /><span className="text-gray-500 text-xs font-normal">系统平台</span></div>}
+            </div>
+            <nav className="flex-1 py-3 flex flex-col gap-1">
+              <NavItem label="车辆管理" active={false} onClick={() => window.location.href = 'vehicles.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+              <NavItem label="作业列表" active={false} onClick={() => window.location.href = 'tasks.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
+              {/* 
+                <NavItem
+                label="作业监控"
+                active={true}
+                onClick={() => window.location.href = 'monitoring.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              */}
+              <NavItem
+                label="路线配置"
+                active={false}
+                onClick={() => window.location.href = 'route-config.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              <NavItem label="地图管理" active={false} onClick={() => window.location.href = 'maps.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+              <NavItem label="prd文档" active={false} onClick={() => window.open('prd.html', '_blank')} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+
+            </nav>
+            <div className="p-3 border-t border-[#1a3350]">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">李</div>
+                {sidebarOpen && <div><div className="text-sm text-gray-300">李运营</div><div className="text-xs text-gray-500">调度员</div></div>}
+              </div>
+            </div>
+          </div>
+
+          {/* 主内容 */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* 顶部栏 */}
+            <div className="h-12 bg-gradient-to-r from-[#0d1a2e] to-[#0a1220] border-b border-[#1a3350] flex items-center justify-between px-5 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition-colors p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div className="text-base font-semibold text-white glow-cyan tracking-wide">作业实时监控</div>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 status-blink inline-block"></span>作业中
+                </span>
+                {/* 车辆切换 */}
+                <div className="w-px h-5 bg-[#1a3350]"></div>
+                <div className="flex items-center gap-1.5 relative" ref={vehicleDropdownRef}>
+                  <span className="text-xs text-gray-500">车辆：</span>
+                  <span className="text-sm font-semibold text-white">{activeVehicle.plate}</span>
+                  <button
+                    onClick={() => setShowVehicleDropdown(v => !v)}
+                    className="flex items-center gap-0.5 px-1.5 py-0.5 rounded transition-all"
+                    style={{
+                      background: showVehicleDropdown ? 'rgba(0,212,255,0.15)' : 'rgba(0,212,255,0.07)',
+                      border: `1px solid ${showVehicleDropdown ? 'rgba(0,212,255,0.5)' : 'rgba(0,212,255,0.25)'}`,
+                      color: '#00D4FF',
+                    }}
+                    title="切换车辆"
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ transition: 'transform 0.2s', transform: showVehicleDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}><path d="M6 9l6 6 6-6" /></svg>
+                    <span style={{ fontSize: '11px', fontWeight: 500 }}>切换</span>
+                  </button>
+                  {/* 当前任务信息 */}
+                  <div className="flex items-center gap-2 ml-2 pl-2" style={{ borderLeft: '1px solid #1a3350' }}>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">当前任务：</span>
+                    <span className="text-xs text-gray-200 whitespace-nowrap font-medium">港口洗扫作业</span>
+                    <span className="w-px h-3 bg-[#1a3350] mx-0.5"></span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">作业里程：</span>
+                    <span className="text-xs font-semibold whitespace-nowrap text-amber-500">12.8km</span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">已行驶：</span>
+                    <span className="text-xs font-semibold whitespace-nowrap" style={{ color: '#00D4FF' }}>2.4km</span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">剩余：</span>
+                    <span className="text-xs font-semibold whitespace-nowrap text-amber-400">9.8km</span>
+                    <span className="w-px h-3 bg-[#1a3350] mx-0.5"></span>
+                    <span className="text-xs text-gray-500 whitespace-nowrap">已耗时：</span>
+                    <span className="text-xs font-semibold whitespace-nowrap text-amber-300">1小时23分</span>
+                  </div>
+                  {/* 下拉车辆列表 */}
+                  {showVehicleDropdown && (
+                    <div
+                      className="absolute top-full left-0 mt-2 z-50 rounded-xl overflow-hidden"
+                      style={{
+                        background: 'linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%)',
+                        border: '1px solid #1a3350',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,212,255,0.06)',
+                        width: '380px',
+                        animation: 'modalIn 0.18s ease forwards',
+                      }}
+                    >
+                      {/* 列表头 */}
+                      <div className="px-3 py-2 border-b border-[#1a3350] flex items-center justify-between">
+                        <span className="text-xs text-gray-400 font-medium">正在作业的车辆</span>
+                        <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(0,255,136,0.1)', color: '#00FF88', border: '1px solid rgba(0,255,136,0.25)' }}>
+                          {otherVehicles.filter(v => v.status === 'running' || v.status === 'paused').length + 1} 辆在线
+                        </span>
+                      </div>
+                      {/* 列标题 */}
+                      <div className="px-3 py-1.5 grid border-b border-[#1a3350]" style={{ gridTemplateColumns: '110px 1fr 44px 48px 52px', gap: '8px', background: 'rgba(0,0,0,0.2)' }}>
+                        {['车牌', '任务', '模式', '进度', '状态'].map(h => (
+                          <span key={h} className="text-xs text-gray-600 font-medium">{h}</span>
+                        ))}
+                      </div>
+                      {/* 当前车辆行 */}
+                      <div className="px-3 py-2.5 grid items-center" style={{
+                        gridTemplateColumns: '110px 1fr 44px 48px 52px',
+                        gap: '8px',
+                        background: 'rgba(0,212,255,0.05)',
+                        borderBottom: '1px solid #1a3350'
+                      }}>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#00D4FF', boxShadow: '0 0 6px #00D4FF' }}></div>
+                          <span className="text-sm font-semibold whitespace-nowrap text-cyan-400">{activeVehicle.plate}</span>
+                        </div>
+                        <span className="text-xs text-gray-400 truncate">{activeVehicle.task}</span>
+                        <span className="text-xs font-medium whitespace-nowrap" style={{ color: '#60a5fa' }}>{activeVehicle.mode}</span>
+                        <span className="text-xs font-medium whitespace-nowrap text-green-400">{activeVehicle.progress}%</span>
+                        <span className="text-xs font-medium whitespace-nowrap text-cyan-400">当前</span>
+                      </div>
+                      {/* 其他车辆行 */}
+                      {otherVehicles.map((v) => {
+                        const statusMap = {
+                          running: { dot: '#00FF88', label: '作业中', labelColor: '#00FF88' },
+                          paused: { dot: '#fbbf24', label: '已暂停', labelColor: '#fbbf24' },
+                          done: { dot: '#64748b', label: '已完成', labelColor: '#64748b' },
+                        };
+                        const s = statusMap[v.status] || statusMap.done;
+                        return (
+                          <div
+                            key={v.plate}
+                            onClick={() => { setActiveVehicle(v); setShowVehicleDropdown(false); }}
+                            className="px-3 py-2.5 grid items-center cursor-pointer transition-all"
+                            style={{
+                              gridTemplateColumns: '110px 1fr 44px 48px 52px',
+                              gap: '8px',
+                              borderBottom: '1px solid #1a3350'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,212,255,0.05)'}
+                            onMouseLeave={e => e.currentTarget.style.background = ''}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot, boxShadow: v.status === 'running' ? `0 0 6px ${s.dot}` : 'none' }}></div>
+                              <span className="text-sm font-medium text-white whitespace-nowrap">{v.plate}</span>
+                            </div>
+                            <span className="text-xs text-gray-500 truncate">{v.task}</span>
+                            <span className="text-xs font-medium whitespace-nowrap" style={{ color: '#93c5fd' }}>{v.mode}</span>
+                            <span className="text-xs font-medium whitespace-nowrap" style={{ color: v.status === 'done' ? '#64748b' : '#e2e8f0' }}>{v.progress}%</span>
+                            <span className="text-xs font-medium whitespace-nowrap" style={{ color: s.labelColor }}>{s.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-sm">
+                <button
+                  onClick={toggleFullscreen}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded transition-all text-gray-400 hover:text-white hover:bg-white/5"
+                  title="全屏"
+                >
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  </svg>
+                </button>
+                <span className="text-gray-500 font-mono">{currentTime.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })} {currentTime.toLocaleTimeString('en-GB')}</span>
+              </div>
+            </div>
+
+            {/* 内容区域 */}
+            <div className="flex-1 p-1.5 overflow-hidden flex flex-col gap-1">
+              {/* 作业信息栏 + 作业配置 */}
+              <div className="panel panel-glow rounded-lg px-3 py-1 flex-shrink-0">
+                <div className="flex items-center gap-2 text-xs overflow-x-auto">
+                  <div className="px-2.5 py-1 rounded font-medium text-cyan-400 border border-cyan-900/40 bg-cyan-400/5 whitespace-nowrap">
+                    作业参数
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">模式：</span>
+                    <span className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 font-medium">洗扫</span>
+                  </div>
+
+                  <div className="w-px h-4 bg-[#1a3350]"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">子模式：</span>
+                    <div className="flex gap-1">
+                      <span className="px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 font-medium">全洗扫</span>
+                      <span className="px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 font-medium">中喷杆</span>
+                    </div>
+                  </div>
+                  <div className="w-px h-4 bg-[#1a3350]"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">清扫：</span>
+                    <span className="px-1.5 py-0.5 rounded bg-cyan-400/10 text-cyan-400 font-medium">2 次</span>
+                  </div>
+                  <div className="w-px h-4 bg-[#1a3350]"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">灯光：</span>
+                    <div className="flex gap-1">
+                      <span className="px-1.5 py-0.5 rounded bg-yellow-500/10 text-yellow-400 font-medium">工作灯、左箭头灯、右箭头灯</span>
+                    </div>
+                  </div>
+
+                  <div className="w-px h-4 bg-[#1a3350]"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-500">开始时间：</span>
+                    <span className="text-white">08:30:00</span>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* 主网格布局 */}
+              <div className="grid grid-cols-12 gap-2 flex-1 min-h-0 relative">
+                {/* 左侧 - 仪表盘 (可隐藏) */}
+                {showVehiclePanel && (
+                  <div className="col-span-2 min-h-0 flex flex-col gap-2">
+                    {/* 车辆仪表盘 */}
+                    <div className="flex-1 min-h-0 panel panel-glow rounded-lg overflow-hidden flex flex-col">
+                      <Dashboard upperControlData={upperControlData} SUB_MODES={SUB_MODES} />
+                    </div>
+                  </div>
+                )}
+
+                {/* 隐藏仪表盘按钮 - 显示在左侧边缘 */}
+                <button
+                  onClick={() => setShowVehiclePanel(!showVehiclePanel)}
+                  className="absolute top-1/2 -translate-y-1/2 z-30 w-6 h-16 rounded-r-lg flex items-center justify-center transition-all hover:bg-cyan-500/30"
+                  style={{
+                    left: showVehiclePanel ? 'calc(16.667% - 12px)' : '0px',
+                    background: 'rgba(13, 26, 46, 0.95)',
+                    border: '1px solid #1a3350',
+                    borderLeft: 'none'
+                  }}
+                  title={showVehiclePanel ? '隐藏仪表盘' : '显示仪表盘'}
+                >
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke={showVehiclePanel ? '#00D4FF' : '#00D4FF'}
+                    strokeWidth="2"
+                    style={{ transform: showVehiclePanel ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.3s' }}
+                  >
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+
+                {/* 右侧 - 地图 + 右侧视频 (两列布局) */}
+                <div className={`min-h-0 flex gap-2 ${showVehiclePanel ? 'col-span-10' : 'col-span-12'}`} style={{ background: './assets/bg.JPG' }}>
+                  {/* 地图容器 */}
+                  <div className="flex-1 panel panel-glow rounded-lg overflow-hidden flex flex-col">
+                    <div className="px-3 py-1 border-b border-[#1a3350] flex items-center justify-between flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-cyan-400 font-medium">实时监控</span>
+                      </div>
+                      <button
+                        onClick={() => setShowVideoPanel(!showVideoPanel)}
+                        className="flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors"
+                        style={{ color: showVideoPanel ? '#00D4FF' : '#64748b', background: showVideoPanel ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showVideoPanel ? 'rgba(0,212,255,0.3)' : '#1a3350'}` }}
+                        title={showVideoPanel ? '隐藏视频' : '显示视频'}
+                      >
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        视频
+                      </button>
+                    </div>
+                    <div className="flex-1 p-0.5 min-h-0 relative" style={{ height: '100%', minHeight: '300px' }}>
+                      <MonitorMap
+                        waypoints={waypoints}
+                        actualPath={actualPath}
+                        vehiclePos={vehiclePos}
+                        vehicleAngle={vehicleAngle}
+                        currentSpeed={currentSpeed}
+                        setSpeed={setSpeed}
+                        isPlaying={isPlaying}
+                        setIsPlaying={setIsPlaying}
+                        cycleProgress={cycleProgress}
+                      />
+
+                      {/* 地图内实时视频 - 根据视角显示在不同位置 */}
+                      {activeCameraView && (
+                        <div
+                          className="absolute rounded-lg overflow-hidden border-2 z-20"
+                          style={{
+                            width: '420px',
+                            aspectRatio: '16/9',
+                            ...(activeCameraView === 'left' && { top: '50%', left: '10px', transform: 'translateY(-50%)' }),
+                            ...(activeCameraView === 'right' && { top: '50%', right: '10px', transform: 'translateY(-50%)' }),
+                            ...(activeCameraView === 'front' && { top: '50px', left: '50%', transform: 'translateX(-50%)' }),
+                            ...(activeCameraView === 'back' && { bottom: '160px', left: '50%', transform: 'translateX(-50%)' }),
+                            borderColor: '#00D4FF',
+                            boxShadow: '0 0 20px rgba(0,212,255,0.3)',
+                          }}
+                        >
+                          <svg viewBox="0 0 420 236" className="w-full h-full">
+                            <rect fill="#0d1525" width="420" height="236" />
+                            <rect fill="#101a2a" x="5" y="5" width="410" height="226" rx="4" />
+                            {/* 模拟道路 */}
+                            <line x1="0" y1="150" x2="420" y2="150" stroke="#1a3350" strokeWidth="1" />
+                            <line x1="0" y1="120" x2="420" y2="120" stroke="#1a3350" strokeWidth="1" strokeDasharray="15,8" />
+                            {/* 模拟车辆 */}
+                            <polygon fill="#00D4FF" opacity="1" points="180,180 240,180 260,150 160,150" />
+                            <rect fill="#1a2d42" x="60" y="30" width="100" height="65" rx="2" />
+                            <rect fill="#1a2d42" x="260" y="60" width="80" height="50" rx="2" />
+                            {/* 网格叠加 */}
+                            <line x1="210" y1="0" x2="210" y2="236" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
+                            <line x1="0" y1="120" x2="420" y2="120" stroke="#00D4FF" strokeWidth="0.5" opacity="0.3" />
+                            {/* 模拟障碍物 */}
+                            <circle cx="280" cy="135" r="15" fill="#ef4444" opacity="0.6" />
+                            <text x="280" y="141" textAnchor="middle" fill="#fff" fontSize="12">!</text>
+                          </svg>
+                          {/* 视频标签 */}
+                          <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-xs font-medium flex items-center gap-1" style={{ background: 'rgba(0,0,0,0.8)', color: '#00D4FF' }}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 status-blink inline-block"></span>
+                            REC
+                          </div>
+                          <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded text-xs" style={{ background: 'rgba(0,0,0,0.8)', color: '#00D4FF' }}>
+                            {cameraViews.find(v => v.id === activeCameraView)?.label}
+                          </div>
+                          {/* 关闭按钮 */}
+                          <button
+                            onClick={() => setActiveCameraView(null)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded flex items-center justify-center transition-colors"
+                            style={{ background: 'rgba(0,0,0,0.8)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.8)'}
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="3"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                          </button>
+                        </div>
+                      )}
+
+                      {/* 地图内部控制按钮 - 右侧 */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-2">
+                        {/* 作业控制按钮组 */}
+                        <div className="panel-glow rounded-lg p-2 flex flex-col gap-2" style={{ background: 'rgba(13, 26, 46, 0.95)' }}>
+                          <span className="text-xs text-gray-500 mb-1">作业控制</span>
+                          {/* 任务修改按钮 */}
+                          <button onClick={() => setShowModifyModal(true)} className="px-3 py-1.5 text-xs rounded transition-colors bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 whitespace-nowrap">
+                            任务修改
+                          </button>
+                          <button onClick={() => setShowUpperControlModal(true)} className="px-3 py-1.5 text-xs rounded transition-colors bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 whitespace-nowrap">
+                            上装控制
+                          </button>
+                          {/* 暂停（停车点）按钮 */}
+                          <button onClick={handlePauseParking} className="px-3 py-1.5 text-xs rounded transition-colors bg-orange-500/20 text-orange-400 border border-orange-500/40 hover:bg-orange-500/30 whitespace-nowrap">
+                            暂停至停车点
+                          </button>
+                          {/* 断点作业按钮 */}
+                          <button onClick={() => setShowBreakpointModal(true)} className="px-3 py-1.5 text-xs rounded transition-colors bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 whitespace-nowrap">
+                            断点作业
+                          </button>
+                          {/* 调试按钮 */}
+                          <div className="border-t border-[#1a3350] mt-1 pt-1">
+                            <button
+                              onClick={() => setShowDebugModal(true)}
+                              className="w-full px-3 py-1.5 text-xs rounded transition-colors whitespace-nowrap flex items-center justify-center gap-1"
+                              style={{ background: 'rgba(139,92,246,0.15)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.4)' }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(139,92,246,0.25)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'rgba(139,92,246,0.15)'}
+                            >
+                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" /><path d="M12 8v4l3 3" /></svg>
+                              调试
+                            </button>
+                          </div>
+
+
+                        </div>
+                        {/* 运行状态指示 */}
+                        <div className="panel-glow rounded px-2 py-1 text-center" style={{ background: 'rgba(13, 26, 46, 0.95)' }}>
+                          <span className="text-xs">
+                            {vehicleStatus === 'running' && <span className="text-green-400">● 运行中</span>}
+                            {vehicleStatus === 'paused_local' && <span className="text-yellow-400">● 就地停车</span>}
+                            {vehicleStatus === 'paused_parking' && <span className="text-orange-400">● 停车点停车</span>}
+                            {vehicleStatus === 'terminated' && <span className="text-red-400">● 已终止</span>}
+                            {vehicleStatus === 'idle' && <span className="text-gray-400">● 未开始</span>}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 视角切换按钮 - 居中显示在底部按钮上方 */}
+                      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10">
+                        <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(13, 26, 46, 0.95)', backdropFilter: 'blur(8px)', border: '1px solid rgba(26, 51, 80, 0.8)' }}>
+                          {cameraViews.map(view => (
+                            <button
+                              key={view.id}
+                              onClick={() => setActiveCameraView(activeCameraView === view.id ? null : view.id)}
+                              className="px-3 py-1.5 text-xs rounded transition-all flex items-center gap-1.5"
+                              style={{
+                                background: activeCameraView === view.id ? 'rgba(0,212,255,0.2)' : 'transparent',
+                                color: activeCameraView === view.id ? '#00D4FF' : '#64748b',
+                                border: `1px solid ${activeCameraView === view.id ? 'rgba(0,212,255,0.5)' : '#1a3350'}`,
+                              }}
+                              onMouseEnter={e => { if (activeCameraView !== view.id) { e.currentTarget.style.color = '#94a3b8'; e.currentTarget.style.borderColor = '#334155'; } }}
+                              onMouseLeave={e => { if (activeCameraView !== view.id) { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.borderColor = '#1a3350'; } }}
+                            >
+                              {renderCameraIcon(view.icon)}
+                              {view.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 底部操作按钮栏 - 居中显示在播放进度条上方 */}
+                      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+                        <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(13, 26, 46, 0.95)', backdropFilter: 'blur(8px)', border: '1px solid rgba(26, 51, 80, 0.8)' }}>
+                          {getBottomActions().map((action, index) => (
+                            <button
+                              key={index}
+                              onClick={action.action}
+                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg transition-all font-medium"
+                              style={{
+                                background: action.bg,
+                                color: action.color,
+                                border: `1px solid ${action.border}`,
+                              }}
+                              onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                            >
+                              {renderActionIcon(action.icon)}
+                              {action.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 视频监控 - 地图右侧，可折叠 */}
+                  {showVideoPanel && (
+                    <div className="w-36 flex-shrink-0">
+                      <VideoMonitorLayout />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 停车点选择弹窗 */}
+          {showParkingModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)' }}>
+              <div className="panel panel-glow rounded-lg p-4 w-64" onClick={e => e.stopPropagation()}>
+                <div className="text-sm text-cyan-400 font-medium mb-3">选择停车点</div>
+                <div className="space-y-2 max-h-60 overflow-auto">
+                  {waypoints.filter(w => !w.completed).map(wp => (
+                    <div
+                      key={wp.label}
+                      onClick={() => handleSelectParking(wp)}
+                      className="p-2 rounded border border-[#1a3350] hover:border-cyan-400/50 cursor-pointer transition-colors"
+                    >
+                      <div className="text-xs text-cyan-400 font-medium">{wp.label} - {wp.name}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        {wp.completed ? '已完成' : '未完成'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowParkingModal(false)}
+                  className="mt-3 w-full px-3 py-1.5 text-xs rounded border border-[#1a3350] text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 断点作业确认弹窗 */}
+          {showBreakpointModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)' }}>
+              <div className="panel panel-glow rounded-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+                <div className="text-sm text-cyan-400 font-medium mb-3">断点作业</div>
+                <div className="text-xs text-gray-300 mb-4">
+                  车辆需要停靠在上次停止点附近，点击确认后将自动执行断点作业
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setVehicleStatus('running');
+                      setShowBreakpointModal(false);
+                    }}
+                    className="flex-1 px-3 py-2 text-xs rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
+                  >
+                    确认
+                  </button>
+                  <button
+                    onClick={() => setShowBreakpointModal(false)}
+                    className="flex-1 px-3 py-2 text-xs rounded border border-[#1a3350] text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 修改作业弹窗 */}
+          {showModifyModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.7)' }} onClick={() => setShowModifyModal(false)}>
+              <div className="panel panel-glow rounded-lg p-5 w-80" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-sm text-cyan-400 font-medium">修改作业参数</div>
+                  <button onClick={() => setShowModifyModal(false)} className="text-gray-400 hover:text-white transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                {/* 清扫次数 */}
+                <div className="mb-4">
+                  <label className="block text-xs text-gray-400 mb-2">清扫次数</label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setModifyData({ ...modifyData, sweepCount: Math.max(1, modifyData.sweepCount - 1) })}
+                      className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-cyan-400/50 hover:text-cyan-400 transition-colors flex items-center justify-center"
+                    >−</button>
+                    <input
+                      type="number"
+                      value={modifyData.sweepCount}
+                      onChange={e => setModifyData({ ...modifyData, sweepCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                      className="w-16 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-center text-sm text-white focus:outline-none focus:border-cyan-400/50"
+                      min="1"
+                      max="10"
+                    />
+                    <button
+                      onClick={() => setModifyData({ ...modifyData, sweepCount: Math.min(10, modifyData.sweepCount + 1) })}
+                      className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-cyan-400/50 hover:text-cyan-400 transition-colors flex items-center justify-center"
+                    >+</button>
+                  </div>
+                </div>
+                {/* 作业路线 */}
+                <div className="mb-4">
+                  <label className="block text-xs text-gray-400 mb-2">作业路线</label>
+                  <select
+                    value={modifyData.route}
+                    onChange={e => setModifyData({ ...modifyData, route: e.target.value })}
+                    className="w-full h-9 rounded bg-[#0a1220] border border-[#1a3350] text-sm text-white px-3 focus:outline-none focus:border-cyan-400/50 transition-colors cursor-pointer"
+                  >
+                    <option value="清扫路线一">清扫路线一</option>
+                    <option value="洗扫路线二">洗扫路线二</option>
+                    <option value="高压冲洗路线">高压冲洗路线</option>
+                    <option value="综合楼周边路线">综合楼周边路线</option>
+                  </select>
+                </div>
+                {/* 按钮 */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      alert(`已修改：清扫次数=${modifyData.sweepCount}，作业路线=${modifyData.route}`);
+                      setShowModifyModal(false);
+                    }}
+                    className="flex-1 px-3 py-2 text-xs rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
+                  >
+                    保存
+                  </button>
+                  <button
+                    onClick={() => setShowModifyModal(false)}
+                    className="flex-1 px-3 py-2 text-xs rounded border border-[#1a3350] text-gray-400 hover:text-white hover:border-gray-400 transition-colors"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 上装控制弹窗 */}
+          {showUpperControlModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 modal-overlay" onClick={() => setShowUpperControlModal(false)}>
+              <div className="modal-box modal-animate w-[480px]" onClick={e => e.stopPropagation()}>
+                {/* 弹窗头部 */}
+                <div className="px-5 py-4 flex items-center justify-between border-b border-[#1a3350] flex-shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,212,255,0.2)', border: '1px solid rgba(0,212,255,0.4)' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00D4FF" strokeWidth="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" /></svg>
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: '#00D4FF' }}>上装控制</span>
+                    <span className="text-xs text-gray-500 ml-1">· 参数更改</span>
+                  </div>
+                  <button onClick={() => setShowUpperControlModal(false)} className="icon-close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                <div className="modal-body px-5 py-4 space-y-5">
+                  {/* 工作模式 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#00D4FF' }}></div>
+                      <span className="text-xs font-semibold text-cyan-400 tracking-wide">工作模式</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                      {[
+                        { id: 'sweep_wash', label: '洗扫模式', color: '#00D4FF', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg> },
+                        { id: 'pure_wash', label: '纯洗模式', color: '#0ea5e9', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg> },
+                        { id: 'dry_sweep', label: '干扫模式', color: '#f59e0b', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 20L20 4M20 4l-2-1 1-2M12 12L4 4" /></svg> },
+                      ].map(mode => (
+                        <div key={mode.id} onClick={() => setUpperControlData(prev => ({ ...prev, workMode: mode.id, subModes: [] }))}
+                          style={{
+                            padding: '12px 8px', borderRadius: 9, cursor: 'pointer', textAlign: 'center',
+                            background: upperControlData.workMode === mode.id ? `${mode.color}15` : '#0a1220',
+                            border: `1px solid ${upperControlData.workMode === mode.id ? mode.color + '60' : '#1a3350'}`,
+                            boxShadow: upperControlData.workMode === mode.id ? `0 0 14px ${mode.color}40` : 'none',
+                            transition: 'all 0.2s'
+                          }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px',
+                            background: upperControlData.workMode === mode.id ? mode.color : '#1a3350',
+                            color: upperControlData.workMode === mode.id ? '#fff' : '#64748b',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>{mode.icon}</div>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: upperControlData.workMode === mode.id ? '#e2e8f0' : '#64748b' }}>{mode.label}</div>
+                          {upperControlData.workMode === mode.id && <div style={{ width: 5, height: 5, borderRadius: '50%', background: mode.color, margin: '5px auto 0', boxShadow: `0 0 8px ${mode.color}` }} />}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 子模式开关 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#94a3b8' }}></div>
+                      <span className="text-xs font-semibold text-gray-400 tracking-wide">
+                        {upperControlData.workMode === 'sweep_wash' ? '洗扫' : upperControlData.workMode === 'pure_wash' ? '纯洗' : '干扫'} · 子模式
+                      </span>
+                      <span className="text-xs text-gray-600">（左/右/全 互斥；中喷杆/降尘喷雾 可同时）</span>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {SUB_MODES[upperControlData.workMode]?.map(sub => (
+                        <button key={sub.id}
+                          onClick={() => {
+                            setUpperControlData(prev => {
+                              const current = prev.subModes;
+                              if (sub.exclusive) {
+                                return { ...prev, subModes: [sub.id] };
+                              } else {
+                                if (current.includes(sub.id)) {
+                                  return { ...prev, subModes: current.filter(s => s !== sub.id) };
+                                } else {
+                                  return { ...prev, subModes: [...current, sub.id] };
+                                }
+                              }
+                            });
+                          }}
+                          style={{
+                            padding: '6px 14px', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                            background: upperControlData.subModes.includes(sub.id) ? '#00D4FF20' : '#0a1220',
+                            color: upperControlData.subModes.includes(sub.id) ? '#00D4FF' : '#64748b',
+                            border: `1px solid ${upperControlData.subModes.includes(sub.id) ? 'rgba(0,212,255,0.5)' : '#1a3350'}`,
+                            transition: 'all 0.2s'
+                          }}>
+                          {upperControlData.subModes.includes(sub.id) && <span style={{ marginRight: 4, display: 'inline-flex' }}>✓</span>}
+                          {sub.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 作业模式 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#3b82f6' }}></div>
+                      <span className="text-xs font-semibold text-blue-400 tracking-wide">作业模式</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                      {[
+                        { id: 'standard', label: '标准作业', desc: '适用于常规清扫任务', color: '#3b82f6' },
+                        { id: 'enhanced', label: '增强作业', desc: '适用于重污染区域', color: '#a855f7' },
+                      ].map(opt => (
+                        <div key={opt.id} onClick={() => setUpperControlData(prev => ({ ...prev, jobStatus: opt.id }))}
+                          style={{
+                            padding: 12, borderRadius: 9, cursor: 'pointer',
+                            background: upperControlData.jobStatus === opt.id ? `${opt.color}15` : '#0a1220',
+                            border: `1px solid ${upperControlData.jobStatus === opt.id ? opt.color + '50' : '#1a3350'}`,
+                            transition: 'all 0.2s'
+                          }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                            <div style={{
+                              width: 8, height: 8, borderRadius: '50%', marginTop: 4, flexShrink: 0,
+                              background: upperControlData.jobStatus === opt.id ? opt.color : '#475569'
+                            }} />
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: upperControlData.jobStatus === opt.id ? '#e2e8f0' : '#94a3b8', marginBottom: 2 }}>{opt.label}</div>
+                              <div style={{ fontSize: 11, color: '#475569' }}>{opt.desc}</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 灯光设置 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#fbbf24' }}></div>
+                      <span className="text-xs font-semibold text-yellow-400 tracking-wide">灯光设置</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                      {[
+                        { id: 'workLight', label: '工作灯', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg> },
+                        { id: 'leftSignal', label: '左箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 18 }}>←</span> },
+                        { id: 'rightSignal', label: '右箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 18 }}>→</span> },
+                      ].map(light => (
+                        <div key={light.id} onClick={() => setUpperControlData(prev => ({ ...prev, [light.id]: !prev[light.id] }))}
+                          style={{
+                            padding: '12px 8px', borderRadius: 9, cursor: 'pointer', textAlign: 'center',
+                            background: upperControlData[light.id] ? 'rgba(251,191,36,0.15)' : '#0a1220',
+                            border: `1px solid ${upperControlData[light.id] ? 'rgba(251,191,36,0.5)' : '#1a3350'}`,
+                            boxShadow: upperControlData[light.id] ? '0 0 14px rgba(251,191,36,0.3)' : 'none',
+                            transition: 'all 0.2s'
+                          }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px',
+                            background: upperControlData[light.id] ? 'rgba(251,191,36,0.15)' : '#1a3350',
+                            color: upperControlData[light.id] ? '#fbbf24' : '#475569',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>{light.icon}</div>
+                          <div style={{ fontSize: 12, color: upperControlData[light.id] ? '#fbbf24' : '#64748b', marginBottom: 6 }}>{light.label}</div>
+                          <div style={{
+                            width: 32, height: 16, borderRadius: 8, position: 'relative', margin: '0 auto',
+                            background: upperControlData[light.id] ? '#fbbf24' : '#1a3350',
+                            transition: 'all 0.2s'
+                          }}>
+                            <div style={{
+                              width: 12, height: 12, borderRadius: '50%', position: 'absolute', top: 2,
+                              background: upperControlData[light.id] ? '#fff' : '#475569',
+                              left: upperControlData[light.id] ? 18 : 2,
+                              transition: 'all 0.2s'
+                            }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 弹窗底部 */}
+                <div className="px-5 py-3 border-t border-[#1a3350] flex justify-end gap-3 flex-shrink-0">
+                  <button
+                    onClick={() => setShowUpperControlModal(false)}
+                    className="px-4 py-1.5 text-xs rounded-lg btn-ghost transition-all"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={() => {
+                      alert(`上装控制参数已更新：\n工作模式：${upperControlData.workMode}\n子模式：${upperControlData.subModes.join(', ')}\n作业模式：${upperControlData.jobStatus}\n灯光：工作灯${upperControlData.workLight ? '开' : '关'}，左箭头灯${upperControlData.leftSignal ? '开' : '关'}，右箭头灯${upperControlData.rightSignal ? '开' : '关'}`);
+                      setShowUpperControlModal(false);
+                    }}
+                    className="px-4 py-1.5 text-xs rounded-lg transition-all"
+                    style={{ background: 'rgba(0,212,255,0.2)', color: '#00D4FF', border: '1px solid rgba(0,212,255,0.4)' }}
+                  >
+                    确认下发
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 功能调试弹窗 */}
+          {showDebugModal && (
+            <div className="fixed inset-0 flex items-center justify-center z-50 modal-overlay" onClick={() => { setShowDebugModal(false); setShowDebugVehicleDropdown(false); }}>
+              <div className="modal-box modal-animate w-[520px] max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                {/* 弹窗头部 */}
+                <div className="px-5 py-4 flex items-center justify-between border-b border-[#1a3350] flex-shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.4)' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2.5"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z" /><path d="M12 8v4l3 3" /></svg>
+                    </div>
+                    <span className="text-sm font-semibold" style={{ color: '#a78bfa' }}>功能调试</span>
+                    <span className="text-xs text-gray-500 ml-1">·</span>
+                    <div className="relative" ref={debugVehicleDropdownRef}>
+                      <button
+                        onClick={() => setShowDebugVehicleDropdown(v => v)}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded transition-all"
+                        style={{
+                          background: showDebugVehicleDropdown ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.08)',
+                          border: `1px solid ${showDebugVehicleDropdown ? 'rgba(139,92,246,0.4)' : 'rgba(139,92,246,0.2)'}`,
+                        }}
+                      >
+                        <span className="text-xs font-medium text-cyan-400">{debugActiveVehicle}</span>
+                        {/*  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-0.5" style={{ transform: showDebugVehicleDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>*/}
+                      </button>
+                      {showDebugVehicleDropdown && (
+                        <div
+                          className="absolute top-full left-0 mt-1 z-50 rounded-lg overflow-hidden"
+                          style={{
+                            background: 'linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%)',
+                            border: '1px solid #1a3350',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.55)',
+                            minWidth: '160px',
+                            animation: 'modalIn 0.18s ease forwards',
+                          }}
+                        >
+                          {['鲁B8888', '鲁B9999', '鲁B6666', '鲁B7777'].map(plate => (
+                            <div
+                              key={plate}
+                              onClick={() => { setDebugActiveVehicle(plate); setShowDebugVehicleDropdown(false); }}
+                              className="px-3 py-2 cursor-pointer transition-all text-xs"
+                              style={{
+                                color: debugActiveVehicle === plate ? '#a78bfa' : '#94a3b8',
+                                background: debugActiveVehicle === plate ? 'rgba(139,92,246,0.1)' : 'transparent',
+                              }}
+                              onMouseEnter={e => { if (debugActiveVehicle !== plate) e.currentTarget.style.background = 'rgba(139,92,246,0.05)'; }}
+                              onMouseLeave={e => { if (debugActiveVehicle !== plate) e.currentTarget.style.background = 'transparent'; }}
+                            >
+                              {plate}
+                              {debugActiveVehicle === plate && <span className="ml-2 text-cyan-400">✓</span>}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={() => setShowDebugModal(false)} className="icon-close">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                  </button>
+                </div>
+
+                <div className="modal-body px-5 py-4 space-y-5 overflow-y-auto">
+                  {/* 分组一：任务下发相关 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#3b82f6' }}></div>
+                      <span className="text-xs font-semibold text-blue-400 tracking-wide uppercase">任务下发</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: '清扫任务下发', color: '#3b82f6', bg: showDispatchPanel ? 'rgba(59,130,246,0.25)' : 'rgba(59,130,246,0.12)', border: 'rgba(59,130,246,0.35)', desc: '下发新的清扫任务', expandable: 'dispatch' },
+                        { label: '上装模式控制', color: '#10b981', bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.35)', desc: '控制上装作业模式', expandable: 'upper' },
+                        { label: '清扫任务修改', color: '#06b6d4', bg: showModifyPanel ? 'rgba(6,182,212,0.25)' : 'rgba(6,182,212,0.12)', border: 'rgba(6,182,212,0.35)', desc: '控制当前清扫任务', expandable: 'modify' },
+                      ].map(item => (
+                        <button
+                          key={item.label}
+                          onClick={() => {
+                            if (item.expandable === 'dispatch') {
+                              setShowDispatchPanel(!showDispatchPanel);
+                            } else if (item.expandable === 'upper') {
+                              setShowUpperPanel(!showUpperPanel);
+                            } else if (item.expandable === 'modify') {
+                              setShowModifyPanel(!showModifyPanel);
+                            } else {
+                              alert(`[调试] 触发：${item.label}`);
+                            }
+                          }}
+                          className="flex flex-col items-start gap-1 p-3 rounded-lg transition-all text-left"
+                          style={{ background: item.bg, border: `1px solid ${item.border}`, color: item.color }}
+                          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                        >
+                          <div className="flex items-center">
+                            <span className="text-xs font-medium" style={{ color: item.color }}>{item.label}</span>
+                            {item.expandable && (
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-1" style={{ transform: (item.expandable === 'dispatch' ? showDispatchPanel : item.expandable === 'modify' ? showModifyPanel : item.expandable === 'upper' ? showUpperPanel : false) ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>
+                            )}
+                          </div>
+                          <span className="text-xs" style={{ color: 'rgba(148,163,184,0.8)' }}>{item.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {/* 清扫任务下发展开面板 - Step1内容 */}
+                    {showDispatchPanel && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
+                        {/* 调试标题 */}
+                        <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(59,130,246,0.2)' }}>
+                          <span className="text-xs font-semibold" style={{ color: '#3b82f6' }}>清扫任务下发</span>
+                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa' }}>[调试]</span>
+                        </div>
+                        {/* 作业名称 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>作业名称</label>
+                          <input
+                            type="text"
+                            className="w-full h-9 rounded bg-[#0a1220] border border-[#1a3350] text-sm text-white px-3 focus:outline-none focus:border-blue-400/50 transition-colors"
+                            placeholder="输入作业名称"
+                          />
+                        </div>
+                        {/* 路线选择 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>路线选择</label>
+                          <select
+                            className="w-full h-9 rounded bg-[#0a1220] border border-[#1a3350] text-sm text-white px-3 focus:outline-none focus:border-blue-400/50 transition-colors cursor-pointer"
+                            style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '24px' }}
+                          >
+                            <option value="">请选择作业路线</option>
+                            <option value="r1">路线 A - 园区主干道（2.4 km）</option>
+                            <option value="r2">路线 B - 商业街区（3.1 km）</option>
+                            <option value="r3">路线 C - 居民小区（1.8 km）</option>
+                            <option value="r4">路线 D - 工业园区（4.2 km）</option>
+                            <option value="r5">路线 E - 公园景区（2.9 km）</option>
+                          </select>
+                        </div>
+                        {/* 清扫次数 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>清扫次数</label>
+                          <div className="flex items-center gap-2">
+                            <button className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-blue-400/50 hover:text-blue-400 transition-colors flex items-center justify-center">−</button>
+                            <input
+                              type="number"
+                              value="1"
+                              className="w-16 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-center text-sm text-white focus:outline-none focus:border-blue-400/50"
+                              min="1"
+                              max="3"
+                            />
+                            <button className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-blue-400/50 hover:text-blue-400 transition-colors flex items-center justify-center">+</button>
+                            <span className="text-xs text-gray-500 ml-2">次</span>
+                          </div>
+                        </div>
+                        {/* 按钮组 */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              alert('清扫任务已下发');
+                              setShowDispatchPanel(false);
+                            }}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(59,130,246,0.25)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.4)' }}
+                          >
+                            下发
+                          </button>
+                          <button
+                            onClick={() => setShowDispatchPanel(false)}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {/* 清扫任务修改展开面板 */}
+                    {showModifyPanel && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)' }}>
+                        {/* 调试标题 */}
+                        <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(6,182,212,0.2)' }}>
+                          <span className="text-xs font-semibold" style={{ color: '#06b6d4' }}>清扫任务修改</span>
+                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(6,182,212,0.2)', color: '#22d3ee' }}>[调试]</span>
+                        </div>
+                        {/* 清扫次数 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-1.5" style={{ color: '#06b6d4' }}>清扫次数</label>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setModifyData({ ...modifyData, sweepCount: Math.max(1, modifyData.sweepCount - 1) })}
+                              className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-cyan-400/50 hover:text-cyan-400 transition-colors flex items-center justify-center"
+                            >−</button>
+                            <input
+                              type="number"
+                              value={modifyData.sweepCount}
+                              onChange={e => setModifyData({ ...modifyData, sweepCount: Math.max(1, parseInt(e.target.value) || 1) })}
+                              className="w-16 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-center text-sm text-white focus:outline-none focus:border-cyan-400/50"
+                              min="1"
+                              max="10"
+                            />
+                            <button
+                              onClick={() => setModifyData({ ...modifyData, sweepCount: Math.min(10, modifyData.sweepCount + 1) })}
+                              className="w-8 h-8 rounded bg-[#0a1220] border border-[#1a3350] text-gray-400 hover:border-cyan-400/50 hover:text-cyan-400 transition-colors flex items-center justify-center"
+                            >+</button>
+                          </div>
+                        </div>
+                        {/* 作业路线 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-1.5" style={{ color: '#06b6d4' }}>作业路线</label>
+                          <select
+                            value={modifyData.route}
+                            onChange={e => setModifyData({ ...modifyData, route: e.target.value })}
+                            className="w-full h-9 rounded bg-[#0a1220] border border-[#1a3350] text-sm text-white px-3 focus:outline-none focus:border-cyan-400/50 transition-colors cursor-pointer"
+                            style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '24px' }}
+                          >
+                            <option value="清扫路线一">清扫路线一</option>
+                            <option value="洗扫路线二">洗扫路线二</option>
+                            <option value="高压冲洗路线">高压冲洗路线</option>
+                            <option value="综合楼周边路线">综合楼周边路线</option>
+                          </select>
+                        </div>
+                        {/* 按钮组 */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              alert(`已修改：清扫次数=${modifyData.sweepCount}，作业路线=${modifyData.route}`);
+                              setShowModifyPanel(false);
+                            }}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(6,182,212,0.25)', color: '#06b6d4', border: '1px solid rgba(6,182,212,0.4)' }}
+                          >
+                            保存
+                          </button>
+                          <button
+                            onClick={() => setShowModifyPanel(false)}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {/* 上装模式控制展开面板 - Step2内容 */}
+                    {showUpperPanel && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
+                        {/* 调试标题 */}
+                        <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(16,185,129,0.2)' }}>
+                          <span className="text-xs font-semibold" style={{ color: '#10b981' }}>上装模式控制</span>
+                          <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}>[调试]</span>
+                        </div>
+                        {/* 工作模式 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-2" style={{ color: '#10b981' }}>工作模式</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'sweep_wash', label: '洗扫', color: '#00D4FF' },
+                              { id: 'pure_wash', label: '纯洗', color: '#0ea5e9' },
+                              { id: 'dry_sweep', label: '干扫', color: '#f59e0b' },
+                            ].map(mode => (
+                              <div key={mode.id} onClick={() => setUpperControlData(prev => ({ ...prev, workMode: mode.id }))}
+                                style={{
+                                  padding: '10px 4px', borderRadius: 8, cursor: 'pointer', textAlign: 'center',
+                                  background: upperControlData.workMode === mode.id ? `${mode.color}15` : '#0a1220',
+                                  border: `1px solid ${upperControlData.workMode === mode.id ? mode.color + '60' : '#1a3350'}`,
+                                  transition: 'all 0.2s'
+                                }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: upperControlData.workMode === mode.id ? '#e2e8f0' : '#64748b' }}>{mode.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* 子模式 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-2" style={{ color: '#10b981' }}>子模式</label>
+                          <div className="flex flex-wrap gap-2">
+                            {SUB_MODES[upperControlData.workMode]?.map(sub => (
+                              <button key={sub.id}
+                                onClick={() => {
+                                  setUpperControlData(prev => {
+                                    if (sub.exclusive) {
+                                      return { ...prev, subModes: [sub.id] };
+                                    } else {
+                                      const current = prev.subModes.filter(id => !SUB_MODES[prev.workMode]?.find(s => s.id === id)?.exclusive);
+                                      return { ...prev, subModes: current.includes(sub.id) ? current.filter(id => id !== sub.id) : [...current, sub.id] };
+                                    }
+                                  });
+                                }}
+                                style={{
+                                  padding: '5px 12px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+                                  background: upperControlData.subModes.includes(sub.id) ? '#10b98120' : '#0a1220',
+                                  color: upperControlData.subModes.includes(sub.id) ? '#10b981' : '#64748b',
+                                  border: `1px solid ${upperControlData.subModes.includes(sub.id) ? 'rgba(16,185,129,0.5)' : '#1a3350'}`,
+                                  transition: 'all 0.2s'
+                                }}>
+                                {upperControlData.subModes.includes(sub.id) && <span style={{ marginRight: 3 }}>✓</span>}
+                                {sub.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* 作业模式 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-2" style={{ color: '#10b981' }}>作业模式</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            {[
+                              { id: 'standard', label: '标准作业', desc: '适用于常规清扫任务', color: '#3b82f6' },
+                              { id: 'enhanced', label: '增强作业', desc: '适用于重污染区域', color: '#a855f7' },
+                            ].map(opt => (
+                              <div key={opt.id} onClick={() => setUpperControlData(prev => ({ ...prev, jobStatus: opt.id }))}
+                                style={{
+                                  padding: 10, borderRadius: 8, cursor: 'pointer',
+                                  background: upperControlData.jobStatus === opt.id ? `${opt.color}15` : '#0a1220',
+                                  border: `1px solid ${upperControlData.jobStatus === opt.id ? opt.color + '50' : '#1a3350'}`,
+                                  transition: 'all 0.2s'
+                                }}>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: upperControlData.jobStatus === opt.id ? '#e2e8f0' : '#94a3b8' }}>{opt.label}</div>
+                                <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{opt.desc}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* 灯光设置 */}
+                        <div className="mb-3">
+                          <label className="block text-xs mb-2" style={{ color: '#10b981' }}>灯光设置</label>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: 'workLight', label: '工作灯' },
+                              { id: 'leftSignal', label: '左箭头灯' },
+                              { id: 'rightSignal', label: '右箭头灯' },
+                            ].map(light => (
+                              <div key={light.id} onClick={() => setUpperControlData(prev => ({ ...prev, [light.id]: !prev[light.id] }))}
+                                style={{
+                                  padding: '8px 4px', borderRadius: 6, cursor: 'pointer', textAlign: 'center',
+                                  background: upperControlData[light.id] ? '#10b98120' : '#0a1220',
+                                  border: `1px solid ${upperControlData[light.id] ? 'rgba(16,185,129,0.5)' : '#1a3350'}`,
+                                  transition: 'all 0.2s'
+                                }}>
+                                <div style={{ fontSize: 11, color: upperControlData[light.id] ? '#10b981' : '#64748b' }}>{light.label}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* 按钮组 */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              alert(`上装模式控制已更新：\n工作模式：${upperControlData.workMode}\n子模式：${upperControlData.subModes.join(', ')}\n作业模式：${upperControlData.jobStatus}`);
+                              setShowUpperPanel(false);
+                            }}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(16,185,129,0.25)', color: '#10b981', border: '1px solid rgba(16,185,129,0.4)' }}
+                          >
+                            确认下发
+                          </button>
+                          <button
+                            onClick={() => setShowUpperPanel(false)}
+                            className="flex-1 px-3 py-2 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 分割线 */}
+                  <div className="glow-line"></div>
+
+                  {/* 分组二：任务控制相关 */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-1 h-4 rounded-full" style={{ background: '#f59e0b' }}></div>
+                      <span className="text-xs font-semibold text-yellow-400 tracking-wide uppercase">任务控制</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { label: '上ON档电', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.35)' },
+                        { label: '下ON档电', color: '#fff', bg: 'rgba(239,68,68,0.25)', border: 'rgba(239,68,68,0.7)' },
+                        { label: '开始', color: '#00FF88', bg: 'rgba(0,255,136,0.1)', border: 'rgba(0,255,136,0.35)' },
+                        { label: '原地暂停', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.35)' },
+                        { label: '继续', color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.35)' },
+                        { label: '终止', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)' },
+                        { label: '断点恢复', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.35)' },
+                      ].map(item => (
+                        <button
+                          key={item.label}
+                          onClick={() => alert(`[调试] 触发：${item.label}`)}
+                          className="flex items-center justify-center py-2.5 px-1 rounded-lg transition-all text-xs font-medium"
+                          style={{ background: item.bg, border: `1px solid ${item.border}`, color: item.color }}
+                          onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                      {/* 停车点暂停 - 可展开按钮 */}
+                      <button
+                        onClick={() => setShowDebugPanel(!showDebugPanel)}
+                        className="flex items-center justify-center py-2.5 px-1 rounded-lg transition-all text-xs font-medium"
+                        style={{ background: showDebugPanel ? 'rgba(249,115,22,0.25)' : 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.35)', color: '#f97316' }}
+                        onMouseEnter={e => { e.currentTarget.style.filter = 'brightness(1.2)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.filter = ''; e.currentTarget.style.transform = ''; }}
+                      >
+                        停车点暂停
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-1" style={{ transform: showDebugPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>
+                      </button>
+                    </div>
+                    {/* 展开面板 - 文档流布局 */}
+                    {showDebugPanel && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
+                        {/* 停车点选择 */}
+                        <div className="mb-2">
+                          <label className="block text-xs mb-1.5" style={{ color: '#f97316' }}>停车点选择</label>
+                          <select
+                            value={selectedParkingPoint}
+                            onChange={e => setSelectedParkingPoint(e.target.value)}
+                            className="w-full px-2 py-1.5 text-xs rounded bg-[#0d1525] text-gray-200 border border-[#1a3350] focus:outline-none focus:border-orange-500"
+                            style={{ appearance: 'none', backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', paddingRight: '24px' }}
+                          >
+                            <option value="">请选择停车点</option>
+                            <option value="P1">停车点 1 - 东门入口</option>
+                            <option value="P2">停车点 2 - 西门出口</option>
+                            <option value="P3">停车点 3 - 充电区</option>
+                            <option value="P4">停车点 4 - 维修区</option>
+                          </select>
+                        </div>
+                        {/* 按钮组 */}
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              if (!selectedParkingPoint) {
+                                alert('请先选择停车点');
+                                return;
+                              }
+                              alert(`已选择停车点: ${selectedParkingPoint}`);
+                            }}
+                            className="flex-1 px-2 py-1.5 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(249,115,22,0.25)', color: '#f97316', border: '1px solid rgba(249,115,22,0.4)' }}
+                          >
+                            确定
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowDebugPanel(false);
+                              setSelectedParkingPoint('');
+                            }}
+                            className="flex-1 px-2 py-1.5 text-xs rounded transition-colors"
+                            style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', border: '1px solid rgba(100,116,139,0.25)' }}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 弹窗底部 */}
+                <div className="px-5 py-3 border-t border-[#1a3350] flex justify-end flex-shrink-0">
+                  <button
+                    onClick={() => setShowDebugModal(false)}
+                    className="px-4 py-1.5 text-xs rounded-lg btn-ghost transition-all"
+                  >
+                    关闭
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+
+</html>

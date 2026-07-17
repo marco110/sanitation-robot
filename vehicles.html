@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>车辆管理 - 环卫智控系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter,wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #060b18;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0d1424;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+      border-radius: 2px;
+    }
+
+    .glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+    }
+
+    .panel {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+    }
+
+    .panel-glow {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-item {
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover,
+    .nav-item.active {
+      background: rgba(0, 212, 255, 0.08);
+    }
+
+    .nav-item.active {
+      border-left: 3px solid #00D4FF;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0066FF, #0044CC);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #00B894, #00856A);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 184, 148, 0.4);
+    }
+
+    .status-dot {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1)
+      }
+
+      50% {
+        opacity: 0.6;
+        transform: scale(0.9)
+      }
+    }
+
+    .border-l-3 {
+      border-left-width: 3px;
+    }
+
+    .table-row:hover {
+      background: rgba(0, 212, 255, 0.04);
+    }
+
+    /* ─── New Task Modal styles ─────────────────────────────────────── */
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: scale(0.94) translateY(16px);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes stepIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .modal-animate {
+      animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    .step-animate {
+      animation: stepIn 0.25s ease-out forwards;
+    }
+
+    .modal-overlay {
+      background: rgba(6, 11, 24, 0.88);
+      backdrop-filter: blur(8px);
+    }
+
+    .modal-box {
+      background: linear-gradient(160deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+      border-radius: 16px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-body {
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-body::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .modal-body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .modal-body::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+      border-radius: 2px;
+    }
+
+    .glow-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.3), transparent);
+    }
+
+    .icon-close {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 7px;
+      background: transparent;
+      border: 1px solid #1a3350;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .icon-close:hover {
+      background: #1a3350;
+      color: #e2e8f0;
+    }
+
+    .input-base {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      color: #e2e8f0;
+      padding: 9px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Noto Sans SC', 'Inter', sans-serif;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+      outline: none;
+    }
+
+    .input-base::placeholder {
+      color: #334155;
+    }
+
+    .input-base:focus {
+      border-color: rgba(0, 212, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+    }
+
+    .select-base {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      color: #e2e8f0;
+      padding: 9px 36px 9px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-family: 'Noto Sans SC', 'Inter', sans-serif;
+      transition: border-color 0.2s;
+      width: 100%;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .select-base:focus {
+      border-color: rgba(0, 212, 255, 0.5);
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.08);
+    }
+
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.3s;
+      font-family: 'Inter', monospace;
+    }
+
+    .step-line {
+      height: 2px;
+      flex: 1;
+      background: #1a3350;
+      transition: background 0.3s;
+    }
+
+    .step-line.active {
+      background: linear-gradient(90deg, #00D4FF, #0066FF);
+    }
+
+    .mode-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mode-card:hover {
+      border-color: rgba(0, 212, 255, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .mode-card.active {
+      border-color: var(--mode-color, #00D4FF);
+      background: color-mix(in srgb, var(--mode-color, #00D4FF) 8%, #080f1e);
+    }
+
+    .sub-btn {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      color: #94a3b8;
+      padding: 6px 12px;
+      border-radius: 7px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Noto Sans SC', sans-serif;
+      white-space: nowrap;
+    }
+
+    .sub-btn:hover {
+      border-color: rgba(0, 212, 255, 0.4);
+      color: #e2e8f0;
+    }
+
+    .sub-btn.sel {
+      border-color: var(--sub-color, #00D4FF);
+      color: var(--sub-color, #00D4FF);
+      background: color-mix(in srgb, var(--sub-color, #00D4FF) 10%, #080f1e);
+      font-weight: 500;
+    }
+
+    .sub-btn.independent {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fbbf24;
+    }
+
+    .sub-btn.independent:hover {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.08);
+    }
+
+    .sub-btn.independent.sel {
+      border-color: #f59e0b;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+      font-weight: 500;
+    }
+
+    .status-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .status-card:hover {
+      border-color: #3a5070;
+    }
+
+    .status-card.sel {
+      border-color: var(--sc, #00D4FF);
+      background: color-mix(in srgb, var(--sc, #00D4FF) 8%, #080f1e);
+    }
+
+    .status-dot-sm {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #3a5070;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      margin-top: 1px;
+    }
+
+    .status-card.sel .status-dot-sm {
+      border-color: var(--sc, #00D4FF);
+      background: var(--sc, #00D4FF);
+      box-shadow: 0 0 8px var(--sc, #00D4FF);
+    }
+
+    .light-card {
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 12px;
+      padding: 14px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .light-card:hover {
+      border-color: #3a5070;
+    }
+
+    .light-card.on {
+      border-color: rgba(251, 191, 36, 0.5);
+      background: rgba(251, 191, 36, 0.06);
+    }
+
+    .toggle-thumb {
+      width: 36px;
+      height: 20px;
+      border-radius: 10px;
+      background: #1a3350;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin: 0 auto;
+    }
+
+    .toggle-thumb::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #e2e8f0;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .toggle-thumb.on {
+      background: #f59e0b;
+    }
+
+    .toggle-thumb.on::after {
+      transform: translateX(16px);
+    }
+
+    .count-stepper {
+      display: flex;
+      align-items: center;
+      background: #080f1e;
+      border: 1.5px solid #1a3350;
+      border-radius: 9px;
+      overflow: hidden;
+      width: 150px;
+    }
+
+    .count-stepper button {
+      width: 38px;
+      height: 38px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .count-stepper button:hover {
+      background: #1a3350;
+      color: #e2e8f0;
+    }
+
+    .count-stepper .val {
+      flex: 1;
+      text-align: center;
+      color: #e2e8f0;
+      font-weight: 600;
+      font-size: 14px;
+      border-left: 1px solid #1a3350;
+      border-right: 1px solid #1a3350;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: 'Inter', sans-serif;
+      margin-bottom: 10px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-family: 'Noto Sans SC', sans-serif;
+    }
+
+    .form-label .req {
+      color: #ef4444;
+      margin-left: 2px;
+    }
+
+    .preview-bar {
+      background: rgba(0, 212, 255, 0.04);
+      border: 1px solid rgba(0, 212, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .preview-tag {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-family: 'Noto Sans SC', sans-serif;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
+
+    // ─── New Task Modal dependencies ──────────────────────────────────
+    const DEFAULT_ROUTES = [
+      { id: 'r1', label: '路线 A  - 园区主干道', dist: '2.4 km', time: '约 60 分钟', isDefault: true },
+      { id: 'r2', label: '路线 B  - 商业街区', dist: '3.1 km', time: '约 78 分钟', isDefault: true },
+      { id: 'r3', label: '路线 C  - 居民小区', dist: '1.8 km', time: '约 45 分钟', isDefault: true },
+      { id: 'r4', label: '路线 D  - 工业园区', dist: '4.2 km', time: '约 105 分钟', isDefault: true },
+      { id: 'r5', label: '路线 E  - 公园景区', dist: '2.9 km', time: '约 73 分钟', isDefault: true },
+    ];
+    const WORK_MODES = [
+      { id: 'wash_sweep', label: '洗扫模式', color: '#00D4FF', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" /></svg>, subModes: [{ id: 'left_sweep', label: '左洗扫', exclusive: true }, { id: 'right_sweep', label: '右洗扫', exclusive: true }, { id: 'full_sweep', label: '全洗扫', exclusive: true }, { id: 'center_spray', label: '中喷杆', exclusive: false }] },
+      { id: 'pure_wash', label: '纯洗模式', color: '#0ea5e9', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" /></svg>, subModes: [{ id: 'left_wash', label: '左清洗', exclusive: true }, { id: 'right_wash', label: '右清洗', exclusive: true }, { id: 'full_wash', label: '全清洗', exclusive: true }, { id: 'center_spray2', label: '中喷杆', exclusive: false }] },
+      { id: 'dry_sweep', label: '干扫模式', color: '#f59e0b', icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20L20 4" /><path d="M20 4l-2-1 1-2" /><path d="M12 12L4 4" /></svg>, subModes: [{ id: 'left_dry', label: '左干扫', exclusive: true }, { id: 'right_dry', label: '右干扫', exclusive: true }, { id: 'full_dry', label: '全干扫', exclusive: true }, { id: 'dust_mist', label: '降尘喷雾', exclusive: false }] },
+    ];
+    const STATUS_OPTIONS = [
+      { id: 'standard', label: '标准作业', desc: '适用于常规清扫任务', color: '#3b82f6' },
+      { id: 'enhanced', label: '增强作业', desc: '适用于重污染区域', color: '#a855f7' }
+    ];
+    const LIGHT_OPTIONS = [
+      { id: 'workLight', label: '工作灯', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg> },
+      { id: 'leftSignal', label: '左箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 16 }}>←</span> },
+      { id: 'rightSignal', label: '右箭头灯', icon: <span style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: 16 }}>→</span> },
+    ];
+    const IconX = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+    const IconCheck = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+    const IconArrowRight = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>;
+    const IconArrowLeft = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>;
+    const IconInfo = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+    const IconZap = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+    const IconRoute = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="19" r="3" /><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" /><circle cx="18" cy="5" r="3" /></svg>;
+
+    function StepIndicator({ step }) {
+      const steps = [{ n: 1, label: '基本信息' }, { n: 2, label: '作业配置' }];
+      return (
+        <div className="flex items-center px-5 pt-5 pb-4 gap-0">
+          {steps.map((s, i) => (
+            <React.Fragment key={s.n}>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="step-dot" style={{ background: step >= s.n ? 'linear-gradient(135deg, #00D4FF, #0066FF)' : '#1a3350', color: step >= s.n ? '#fff' : '#475569', boxShadow: step >= s.n ? '0 0 14px rgba(0,212,255,0.4)' : 'none' }}>{step > s.n ? <IconCheck /> : s.n}</div>
+                <span style={{ fontSize: 11, fontFamily: 'Noto Sans SC, sans-serif', fontWeight: step === s.n ? 600 : 400, color: step >= s.n ? '#e2e8f0' : '#475569' }}>{s.label}</span>
+              </div>
+              {i < steps.length - 1 && <div className={'step-line mx-3 ' + (step > s.n ? 'active' : '')} />}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    function Step1({ data, onChange, routes, vehicles }) {
+      const selectedRoute = routes.find(r => r.id === data.route);
+      const selectedVehicle = vehicles.find(v => v.plate === data.vehicle);
+      return (
+        <div className="step-animate space-y-5 px-5 pb-2">
+          <div>
+            <label className="form-label">作业名称 <span className="req">*</span></label>
+            <input type="text" className="input-base" value={data.jobName} onChange={e => onChange({ ...data, jobName: e.target.value })} placeholder="输入作业名称" />
+            <p style={{ fontSize: 11, color: '#334155', marginTop: 5, fontFamily: 'Noto Sans SC, sans-serif' }}>默认格式：新作业_YYYYMMDDHHMMSS</p>
+          </div>
+          <div>
+            <label className="form-label">车辆选择 <span className="req">*</span></label>
+            <select className="select-base" value={data.vehicle}
+              onChange={e => onChange({ ...data, vehicle: e.target.value })}>
+              <option value="">请选择车辆</option>
+              {vehicles.map(v => (
+                <option key={v.plate} value={v.plate}>{v.plate}（{v.category} · {v.model}）</option>
+              ))}
+            </select>
+            {selectedVehicle && (
+              <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,168,112,0.05)', border: '1px solid rgba(0,168,112,0.12)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: '#00a870' }}><IconInfo /></span>
+                <span style={{ fontSize: 12, color: '#00a870', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  已选车辆：{selectedVehicle.plate}，{selectedVehicle.workType}，状态：{selectedVehicle.status}
+                </span>
+              </div>
+            )}
+          </div>
+          <div>
+            <label className="form-label"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconRoute /> 路线选择</span></label>
+            <select className="select-base" value={data.route} onChange={e => onChange({ ...data, route: e.target.value })}>
+              <option value="">请选择作业路线</option>
+              {routes.map(r => <option key={r.id} value={r.id}>{r.label}（约{r.dist}）</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="form-label">清扫次数</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="count-stepper">
+                <button onClick={() => onChange({ ...data, sweepCount: Math.max(1, data.sweepCount - 1) })}>−</button>
+                <div className="val">{data.sweepCount}</div>
+                <button onClick={() => onChange({ ...data, sweepCount: Math.min(3, data.sweepCount + 1) })}>+</button>
+              </div>
+              <span style={{ fontSize: 12, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif' }}>次</span>
+              <span style={{ fontSize: 11, color: '#334155', marginLeft: 'auto', fontFamily: 'Noto Sans SC, sans-serif' }}>范围：1 ~ 3 次</span>
+            </div>
+            <div style={{ display: 'flex', gap: 4, marginTop: 10 }}>
+              {Array.from({ length: 3 }, (_, i) => (
+                <div key={i} style={{ flex: 1, height: 4, borderRadius: 2, transition: 'all 0.2s', background: i < data.sweepCount ? (i < 2 ? '#00D4FF' : '#0ea5e9') : '#1a3350', boxShadow: i < data.sweepCount ? '0 0 6px ' + (i < 2 ? 'rgba(0,212,255,0.5)' : 'rgba(14,165,233,0.5)') : 'none' }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function Step2({ data, onChange }) {
+      const currentMode = WORK_MODES.find(m => m.id === data.workMode);
+      const handleModeChange = (modeId) => { const mode = WORK_MODES.find(m => m.id === modeId); const firstExclusive = mode?.subModes.find(s => s.exclusive); onChange({ ...data, workMode: modeId, subMode: firstExclusive?.id || '', independentModes: [] }); };
+      const handleSubModeToggle = (subMode) => { if (subMode.exclusive) { onChange({ ...data, subMode: data.subMode === subMode.id ? '' : subMode.id }); } else { const cur = data.independentModes || []; onChange({ ...data, independentModes: cur.includes(subMode.id) ? cur.filter(id => id !== subMode.id) : [...cur, subMode.id] }); } };
+      const isSubModeSelected = (subMode) => subMode.exclusive ? data.subMode === subMode.id : (data.independentModes || []).includes(subMode.id);
+      const toggleLight = (id) => onChange({ ...data, lights: { ...data.lights, [id]: !data.lights[id] } });
+      const mode = WORK_MODES.find(m => m.id === data.workMode);
+      const status = STATUS_OPTIONS.find(s => s.id === data.jobStatus);
+      const route = data.routeObj;
+      const activeSubs = [];
+      if (data.subMode && mode) { const s = mode.subModes.find(x => x.id === data.subMode); if (s) activeSubs.push(s.label); }
+      (data.independentModes || []).forEach(id => { const s = mode?.subModes.find(x => x.id === id); if (s) activeSubs.push(s.label); });
+      const previewTags = [
+        data.jobName && { label: data.jobName, bg: 'rgba(255,255,255,0.06)', color: '#94a3b8' },
+        route && { label: route.name, bg: 'rgba(0,212,255,0.1)', color: '#00D4FF' },
+        mode && { label: mode.label, bg: `${mode.color}18`, color: mode.color },
+        ...activeSubs.map(l => ({ label: l, bg: 'rgba(245,158,11,0.1)', color: '#fbbf24' })),
+        status && { label: status.label, bg: `${status.color}18`, color: status.color },
+        ...Object.entries(data.lights).filter(([, v]) => v).map(([k]) => ({ label: k === 'workLight' ? '工作灯' : k === 'leftSignal' ? '左转向灯' : '右转向灯', bg: 'rgba(251,191,36,0.1)', color: '#fbbf24' })),
+      ].filter(Boolean);
+      return (
+        <div className="step-animate space-y-5 px-5 pb-2">
+          {previewTags.length > 0 && (
+            <div className="preview-bar">
+              <span style={{ fontSize: 10, color: '#334155', fontFamily: 'Inter', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', marginRight: 2 }}>预览</span>
+              {previewTags.map((t, i) => <span key={i} className="preview-tag" style={{ background: t.bg, color: t.color }}>{t.label}</span>)}
+            </div>
+          )}
+          <div>
+            <label className="section-label">工作模式</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {WORK_MODES.map(m => (
+                <div key={m.id} className={'mode-card ' + (data.workMode === m.id ? 'active' : '')} style={{ '--mode-color': m.color }} onClick={() => handleModeChange(m.id)}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px', background: data.workMode === m.id ? m.color : '#1a3350', color: data.workMode === m.id ? '#fff' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: data.workMode === m.id ? '0 0 14px ' + m.color + '60' : 'none', transition: 'all 0.2s' }}>{m.icon}</div>
+                  <div style={{ fontSize: 12, fontWeight: 600, fontFamily: 'Noto Sans SC, sans-serif', color: data.workMode === m.id ? '#e2e8f0' : '#64748b' }}>{m.label}</div>
+                  {data.workMode === m.id && <div style={{ width: 5, height: 5, borderRadius: '50%', background: m.color, margin: '5px auto 0', boxShadow: '0 0 8px ' + m.color }} />}
+                </div>
+              ))}
+            </div>
+          </div>
+          {currentMode && (
+            <div>
+              <label className="section-label" style={{ color: currentMode.color }}>{currentMode.label} · 子模式 <span style={{ color: '#475569', fontWeight: 400, marginLeft: 6, fontSize: 11 }}>（左/右/全 互斥；中喷杆/降尘喷雾 可同时启用）</span></label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {currentMode.subModes.map(sub => (
+                  <button key={sub.id} className={'sub-btn ' + (isSubModeSelected(sub) ? 'sel ' : '') + (!sub.exclusive ? 'independent' : '')} style={{ '--sub-color': currentMode.color }} onClick={() => handleSubModeToggle(sub)}>
+                    {isSubModeSelected(sub) && <span style={{ marginRight: 3, display: 'inline-flex' }}><IconCheck /></span>}{sub.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div>
+            <label className="section-label">作业模式</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+              {STATUS_OPTIONS.map(opt => (
+                <div key={opt.id} className={'status-card ' + (data.jobStatus === opt.id ? 'sel' : '')} style={{ '--sc': opt.color }} onClick={() => onChange({ ...data, jobStatus: opt.id })}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <div className="status-dot-sm" />
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: data.jobStatus === opt.id ? '#e2e8f0' : '#94a3b8', fontFamily: 'Noto Sans SC, sans-serif', marginBottom: 2 }}>{opt.label}</div>
+                      <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Noto Sans SC, sans-serif' }}>{opt.desc}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="section-label">灯光设置</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {LIGHT_OPTIONS.map(l => (
+                <div key={l.id} className={'light-card ' + (data.lights[l.id] ? 'on' : '')} onClick={() => toggleLight(l.id)}>
+                  <div style={{ width: 36, height: 36, borderRadius: 9, margin: '0 auto 8px', background: data.lights[l.id] ? 'rgba(251,191,36,0.15)' : '#1a3350', color: data.lights[l.id] ? '#fbbf24' : '#475569', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: data.lights[l.id] ? '0 0 14px rgba(251,191,36,0.3)' : 'none', transition: 'all 0.2s' }}>{l.icon}</div>
+                  <div style={{ fontSize: 12, fontFamily: 'Noto Sans SC, sans-serif', color: data.lights[l.id] ? '#fbbf24' : '#64748b', marginBottom: 8 }}>{l.label}</div>
+                  <div className={'toggle-thumb ' + (data.lights[l.id] ? 'on' : '')} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function NewTaskModal({ onClose, onCreate, vehiclePlate, vehicles: vehiclesProp }) {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const defaultName = `新作业_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+      const [step, setStep] = useState(1);
+      const [form, setForm] = useState({
+        jobName: defaultName, vehicle: vehiclePlate || '', route: '', routeObj: null, sweepCount: 1,
+        workMode: 'wash_sweep', subMode: 'full_sweep', independentModes: [],
+        jobStatus: 'standard', lights: { workLight: false, leftSignal: false, rightSignal: false },
+      });
+      const handleFormChange = (newForm) => { const route = DEFAULT_ROUTES.find(r => r.id === newForm.route) || null; setForm({ ...newForm, routeObj: route }); };
+      const handleNext = () => { if (!form.vehicle) { alert('请先选择车辆'); return; } if (!form.route) { alert('请先选择作业路线'); return; } setStep(2); };
+      const handleCreate = () => {
+        const mode = WORK_MODES.find(m => m.id === form.workMode);
+        const activeSubs = [];
+        if (form.subMode && mode) { const s = mode.subModes.find(x => x.id === form.subMode); if (s) activeSubs.push(s.label); }
+        (form.independentModes || []).forEach(id => { const s = mode?.subModes.find(x => x.id === id); if (s) activeSubs.push(s.label); });
+        const status = STATUS_OPTIONS.find(s => s.id === form.jobStatus);
+        onCreate({
+          id: 'T' + Date.now(), name: form.jobName, mode: mode?.label || form.workMode,
+          modeSubs: activeSubs.join(' + ') || '-', vehicle: form.vehicle,
+          creator: '李运营', status: status?.label || form.jobStatus,
+          progress: 0, startTime: '-', endTime: '-', distance: '0.0', duration: '00:00:00',
+          sweepCount: form.sweepCount,
+          lights: Object.entries(form.lights).filter(([, v]) => v).map(([k]) => k === 'workLight' ? '工作灯' : k === 'leftSignal' ? '左转向灯' : '右转向灯').join('、') || '全部关闭',
+          routes: form.routeObj ? [{ name: form.routeObj.name, color: '#00D4FF' }] : [],
+        });
+        onClose();
+      };
+      return (
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" onClick={onClose}>
+          <div className="modal-box modal-animate w-full" style={{ maxWidth: 600 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0' }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', fontFamily: 'Inter, sans-serif' }}>新建作业</h2>
+                <p style={{ fontSize: 12, color: '#475569', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>为车辆 <span style={{ color: '#00D4FF' }}>{vehiclePlate}</span> 配置新的清扫任务</p>
+              </div>
+              <button className="icon-close" onClick={onClose}><IconX /></button>
+            </div>
+            <div className="glow-line" style={{ margin: '14px 20px 0' }} />
+            <StepIndicator step={step} />
+            <div className="modal-body" style={{ paddingTop: 4 }}>
+              {step === 1 ? <Step1 data={form} onChange={handleFormChange} routes={DEFAULT_ROUTES} vehicles={vehiclesProp} /> : <Step2 data={form} onChange={setForm} />}
+            </div>
+            <div style={{ padding: '16px 20px 18px', borderTop: '1px solid #1a3350', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'linear-gradient(to top, #0a1220 60%, transparent)' }}>
+              {step === 2
+                ? <button className="btn-ghost" style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={() => setStep(1)}><IconArrowLeft /> 上一步</button>
+                : <div />
+              }
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button className="btn-ghost" style={{ padding: '8px 16px', borderRadius: 9, fontSize: 13, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={onClose}>取消</button>
+                {step === 1
+                  ? <button className="btn-primary" style={{ padding: '8px 18px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif' }} onClick={handleNext}>下一步 <IconArrowRight /></button>
+                  : <button className="btn-primary" style={{ padding: '8px 18px', borderRadius: 9, fontSize: 13, fontWeight: 600, color: '#fff', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'Noto Sans SC, sans-serif', background: 'linear-gradient(135deg, #00a870, #008060)', boxShadow: '0 4px 12px rgba(0,180,100,0.3)' }} onClick={handleCreate}><IconZap /> 创建作业</button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // ─── End New Task Modal dependencies ──────────────────────────────
+
+    function NavItem({ label, icon, active, onClick }) {
+      return (
+        <button onClick={onClick}
+          className={"nav-item w-full flex items-center gap-3 px-4 py-3 text-sm transition-all duration-200 text-left " + (active ? 'active text-cyan-400 bg-cyan-400/5 border-l-[3px] border-cyan-400' : 'text-gray-400 border-l-[3px] border-transparent')}>
+          {icon}
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    // Mock 车辆数据库（包含已接入车辆 + 平台其他车辆）
+    const ALL_VEHICLES_POOL = [
+      { vin: 'LZGCR123456789012', plate: '鲁B8888', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 WA55', weight: '3100' },
+      { vin: 'LZGCN987654321098', plate: '鲁B9999', workType: '洒水作业', category: '洒水车', subCategory: '5方洒水车', model: '飞碟 D9', weight: '5500' },
+      { vin: 'LZGCN111122223333', plate: '鲁B7777', workType: '清运作业', category: '压缩车', subCategory: '7方压缩车', model: '飞碟 ZLJ', weight: '7200' },
+      { vin: 'LZGCN444455556666', plate: '鲁B6666', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 T8', weight: '3200' },
+      { vin: 'LZGCR555566667777', plate: '鲁A1111', workType: '清扫作业', category: '洗扫车', subCategory: '5吨洗扫车', model: '飞碟 WA80', weight: '4500' },
+      { vin: 'LZGCN888899990000', plate: '鲁A2222', workType: '洒水作业', category: '洒水车', subCategory: '8方洒水车', model: '飞碟 D12', weight: '7200' },
+      { vin: 'LZGCN121234345656', plate: '鲁A3333', workType: '清运作业', category: '压缩车', subCategory: '10方压缩车', model: '飞碟 ZLJ20', weight: '8500' },
+      { vin: 'LZGCR787890901212', plate: '鲁B5555', workType: '清扫作业', category: '洗扫车', subCategory: '8吨洗扫车', model: '飞碟 WA100', weight: '6200' },
+    ];
+
+    function VehicleModal({ onClose, onAdd, existingVins }) {
+      const [vin, setVin] = useState('');
+      const [loading, setLoading] = useState(false);
+      const [results, setResults] = useState([]);
+      const [selectedVehicle, setSelectedVehicle] = useState(null);
+      const [hasSearched, setHasSearched] = useState(false);
+      const debounceRef = useRef(null);
+
+      const doSearch = (query) => {
+        if (query.length < 3) {
+          setResults([]);
+          setSelectedVehicle(null);
+          setHasSearched(false);
+          setLoading(false);
+          return;
+        }
+        setLoading(true);
+        setHasSearched(true);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+          const upperQuery = query.toUpperCase();
+          const addedVins = new Set(existingVins || []);
+          const matched = ALL_VEHICLES_POOL.filter(v =>
+            (v.vin.includes(upperQuery) || v.plate.includes(query) || v.model.includes(query)) && !addedVins.has(v.vin)
+          );
+          setResults(matched);
+          setSelectedVehicle(null);
+          setLoading(false);
+        }, 400);
+      };
+
+      useEffect(() => {
+        doSearch(vin);
+        return () => clearTimeout(debounceRef.current);
+      }, [vin]);
+
+      const handleVinChange = (e) => {
+        setVin(e.target.value.toUpperCase());
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+          <div className="panel panel-glow rounded-xl w-full max-w-2xl mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-[#1a3350]">
+              <div>
+                <h2 className="text-base font-semibold text-white">接入车辆</h2>
+                <p className="text-xs text-gray-500 mt-0.5">输入VIN码自动查询环卫平台车辆</p>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5">
+              {/* VIN 输入 */}
+              <div className="mb-4">
+                <label className="block text-sm text-gray-400 mb-2">
+                  VIN 码查询 <span className="text-gray-600 text-xs">(输入至少3位自动搜索)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={vin}
+                    onChange={handleVinChange}
+                    placeholder="输入VIN码自动搜索，如 LZGCR1"
+                    className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60 transition-colors font-mono tracking-widest"
+                  />
+                  <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  {loading && (
+                    <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  )}
+                </div>
+                <p className="text-gray-600 text-xs mt-1.5">车辆从环卫平台接入，通过 VIN 码查询添加，也支持按车牌号或车型搜索</p>
+              </div>
+
+              {/* 搜索结果列表 */}
+              {hasSearched && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500">
+                      {loading ? '搜索中...' : results.length > 0 ? `找到 ${results.length} 辆匹配车辆` : '未找到匹配车辆'}
+                    </span>
+                    {selectedVehicle && (
+                      <span className="text-xs text-cyan-400">已选择: <span className="font-medium">{selectedVehicle.plate}</span></span>
+                    )}
+                  </div>
+
+                  {results.length > 0 ? (
+                    <div className="border border-[#1a3350] rounded-lg overflow-hidden max-h-[300px] overflow-y-auto">
+                      {/* 表头 */}
+                      <div className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_80px] gap-0 bg-[#0a1220] border-b border-[#1a3350] px-3 py-2 text-xs text-gray-500 font-medium">
+                        <span>车牌号</span>
+                        <span>作业类型</span>
+                        <span>车辆大类</span>
+                        <span>车辆小类</span>
+                        <span>车辆型号</span>
+                        <span className="text-center">状态</span>
+                      </div>
+                      {/* 列表项 */}
+                      {results.map(v => {
+                        const isSel = selectedVehicle?.vin === v.vin;
+                        return (
+                          <div
+                            key={v.vin}
+                            onClick={() => setSelectedVehicle(v)}
+                            className={
+                              'grid grid-cols-[1fr_1fr_1fr_1fr_1fr_80px] gap-0 px-3 py-2.5 text-xs border-b border-[#0f1a2a] last:border-b-0 transition-all cursor-pointer ' +
+                              (isSel
+                                ? 'bg-cyan-400/10 border-cyan-400/20'
+                                : 'hover:bg-[#0a1220]/80')
+                            }>
+                            <span className={isSel ? 'text-cyan-400 font-medium' : 'text-white'}>{v.plate}</span>
+                            <span className="text-gray-300">{v.workType}</span>
+                            <span className="text-gray-300">{v.category}</span>
+                            <span className="text-gray-300">{v.subCategory}</span>
+                            <span className="text-gray-300">{v.model}</span>
+                            <span className="text-center">
+                              {isSel ? (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-400 border border-cyan-400/30">待添加</span>
+                              ) : (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-[#1a3350]/30 text-gray-400">可选</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : !loading && (
+                    <div className="text-center py-10 text-gray-500 text-sm">
+                      <svg className="w-10 h-10 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <p>未找到匹配的车辆</p>
+                      <p className="text-xs text-gray-600 mt-1">请检查VIN码是否正确，或尝试其他关键词</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!hasSearched && (
+                <div className="text-center py-10 text-gray-500 text-sm">
+                  <svg className="w-10 h-10 mx-auto mb-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <p>输入 3 位以上 VIN 码自动搜索</p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 p-5 border-t border-[#1a3350]">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 text-sm hover:text-white transition-colors border border-[#1a3350]">取消</button>
+              <button
+                onClick={() => { if (selectedVehicle) { onAdd({ ...selectedVehicle, status: '在线', updateTime: new Date().toLocaleString('zh-CN') }); onClose(); } }}
+                disabled={!selectedVehicle}
+                className={'px-5 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 ' + (selectedVehicle ? 'btn-success cursor-pointer' : 'bg-gray-700 text-gray-500 cursor-not-allowed')}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                确认接入车辆
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Map management mock data (shared with maps.html / tasks.html) ───
+    const DEFAULT_MAP_DATA = {
+      '港口A区': {
+        lidar: [
+          { id: 'LC001', regionName: '港口A区', version: '1.0.2', uploadTime: '2026-04-10 14:32', uploader: '李运营', desc: '更新堆场C区边界，新增入口辅路数据', fileSize: '128.5 MB', isActive: true, type: 'lidar' },
+          { id: 'LC002', regionName: '港口A区', version: '1.0.1', uploadTime: '2026-03-28 09:15', uploader: '王调度', desc: '修正北侧道路点云偏移', fileSize: '115.2 MB', isActive: false, type: 'lidar' },
+          { id: 'LC003', regionName: '港口A区', version: '1.0.0', uploadTime: '2026-03-01 10:00', uploader: '张管理员', desc: '初始版本，覆盖全区域', fileSize: '98.7 MB', isActive: false, type: 'lidar' },
+        ],
+      },
+      '综合楼周边': {
+        lidar: [
+          { id: 'LC004', regionName: '综合楼周边', version: '1.0.1', uploadTime: '2026-04-08 11:20', uploader: '李运营', desc: '新增停车场区域', fileSize: '45.3 MB', isActive: true, type: 'lidar' },
+          { id: 'LC005', regionName: '综合楼周边', version: '1.0.0', uploadTime: '2026-03-05 08:30', uploader: '张管理员', desc: '初始建图', fileSize: '38.1 MB', isActive: false, type: 'lidar' },
+        ],
+      },
+      '堆场C区': {
+        lidar: [
+          { id: 'LC006', regionName: '堆场C区', version: '1.0.0', uploadTime: '2026-04-01 13:00', uploader: '王调度', desc: '初始建图', fileSize: '156.8 MB', isActive: true, type: 'lidar' },
+        ],
+      },
+    };
+
+    // ─── Anomaly files constants ──────────────────────────────────────
+    const ANOMALY_TYPE_MAP = { 1: '碰撞', 2: '紧急制动', 3: 'HMI手动触发', 4: '地图采集' };
+    const ANOMALY_TYPE_COLORS = { 1: '#ef4444', 2: '#f59e0b', 3: '#8b5cf6', 4: '#00D4FF' };
+
+    function getAnomalyFilesForVehicle(vehicle) {
+      const baseFiles = {
+        '鲁B8888': [
+          { id: 'AF004', desc: '堆场C区地图采集数据', uploadTime: '2024-01-12 08:00:00', occurTime: '2024-01-12 07:58:00', duration: '00:30:00', type: 4, size: '1.2 GB' },
+        ],
+        '鲁B9999': [
+          { id: 'AF005', desc: '港口B区栈桥地图采集', uploadTime: '2024-01-15 10:30:00', occurTime: '2024-01-15 10:29:15', duration: '00:00:45', type: 4, size: '89.1 MB' },
+        ],
+        '鲁B6666': [
+          { id: 'AF008', desc: '园区地图采集任务', uploadTime: '2024-01-13 06:00:00', occurTime: '2024-01-13 05:55:00', duration: '00:45:00', type: 4, size: '2.1 GB' },
+        ],
+      };
+      return baseFiles[vehicle] || [];
+    }
+
+    // ─── File Modal ──────────────────────────────────────────────────
+    function FileModal({ files, vehicle, mapRegions, onLinkMap, onClose }) {
+      const [downloadingId, setDownloadingId] = useState(null);
+
+      const handleDownload = (file) => {
+        setDownloadingId(file.id);
+        setTimeout(() => setDownloadingId(null), 1500);
+      };
+
+      const formatFileSize = (size) => {
+        if (size.includes('GB')) return { value: size.replace(' GB', ''), unit: 'GB', color: '#f59e0b' };
+        if (size.includes('MB')) return { value: size.replace(' MB', ''), unit: 'MB', color: '#00D4FF' };
+        return { value: size, unit: '', color: '#94a3b8' };
+      };
+
+      const getTypeBadge = (type) => {
+        const label = ANOMALY_TYPE_MAP[type] || '未知';
+        const color = ANOMALY_TYPE_COLORS[type] || '#64748b';
+        return { label, color };
+      };
+
+      return (
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50 p-4" onClick={onClose}>
+          <div className="modal-box modal-animate w-full" style={{ maxWidth: 900, maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>地图文件查看</h3>
+                <p style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>车辆 {vehicle} · 共 {files.length} 条记录</p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-white">
+                <IconX />
+              </button>
+            </div>
+            <div className="glow-line" style={{ margin: '14px 20px 0' }} />
+            <div className="modal-body" style={{ padding: '16px 20px 20px' }}>
+              {files.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: '#334155', fontSize: 13, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  该车辆暂无异常数据文件
+                </div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #1a3350' }}>
+                      {['异常描述', '上传时间', '异常发生时间', '采集时长', '类型', '文件大小', '操作'].map(h => (
+                        <th key={h} style={{ padding: '10px 8px', textAlign: h === '异常描述' ? 'left' : 'center', fontSize: 11, fontWeight: 600, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {files.map(file => {
+                      const typeInfo = getTypeBadge(file.type);
+                      const sizeInfo = formatFileSize(file.size);
+                      return (
+                        <tr key={file.id} style={{ borderBottom: '1px solid #0f1a2a' }}>
+                          <td style={{ padding: '10px 8px', fontSize: 12, color: '#e2e8f0', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={file.desc}>{file.desc}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.uploadTime}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.occurTime}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center', fontSize: 11, color: '#f59e0b', fontWeight: 500, fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap' }}>{file.duration}</td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            <span style={{
+                              display: 'inline-block', padding: '2px 8px', borderRadius: 9999, fontSize: 10, fontWeight: 600,
+                              background: typeInfo.color + '15', color: typeInfo.color, border: '1px solid ' + typeInfo.color + '30',
+                              whiteSpace: 'nowrap',
+                            }}>{typeInfo.label}</span>
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: sizeInfo.color, fontFamily: 'Inter, sans-serif' }}>{sizeInfo.value}</span>
+                            <span style={{ fontSize: 10, color: '#475569', fontFamily: 'Inter, sans-serif', marginLeft: 2 }}>{sizeInfo.unit}</span>
+                          </td>
+                          <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                              {file.type === 4 && (
+                                <button
+                                  onClick={() => onLinkMap(file)}
+                                  title="关联到点云地图"
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 6,
+                                    fontSize: 11, fontWeight: 500, fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                                    background: 'rgba(147,51,234,0.1)', border: '1px solid rgba(147,51,234,0.35)',
+                                    color: '#c084fc', transition: 'all 0.15s', whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                                  </svg>
+                                  关联
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleDownload(file)}
+                                disabled={downloadingId === file.id}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 12px', borderRadius: 6,
+                                  fontSize: 11, fontWeight: 500, fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                                  background: downloadingId === file.id ? 'rgba(0,255,136,0.15)' : 'rgba(0,255,136,0.08)',
+                                  border: '1px solid ' + (downloadingId === file.id ? 'rgba(0,255,136,0.5)' : 'rgba(0,255,136,0.25)'),
+                                  color: downloadingId === file.id ? '#00FF88' : '#00FF88',
+                                  transition: 'all 0.15s',
+                                }}
+                              >
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                  <polyline points="7 10 12 15 17 10" />
+                                  <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                {downloadingId === file.id ? '下载中...' : '下载'}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ─── Map Link Modal ──────────────────────────────────────────────
+    function MapLinkModal({ file, mapRegions, mapData, onClose, onSave }) {
+      const [regionName, setRegionName] = useState('');
+      const [newRegionName, setNewRegionName] = useState('');
+      const [version, setVersion] = useState('');
+      const [desc, setDesc] = useState(file ? file.desc : '');
+      const [saving, setSaving] = useState(false);
+
+      const existingRegions = Object.keys(mapData);
+      const selectedRegion = regionName === '__new__' ? null : mapData[regionName];
+      const isNewRegion = regionName === '__new__';
+
+      React.useEffect(() => {
+        if (selectedRegion && selectedRegion.lidar && selectedRegion.lidar.length > 0) {
+          const versions = selectedRegion.lidar.map(v => v.version).sort().reverse();
+          const latestVer = versions[0];
+          const parts = latestVer.split('.');
+          const nextPatch = parseInt(parts[2] || '0') + 1;
+          setVersion(`${parts[0]}.${parts[1]}.${nextPatch}`);
+        } else {
+          setVersion('');
+        }
+      }, [regionName, mapData]);
+
+      const handleSave = async () => {
+        const finalRegion = isNewRegion ? newRegionName.trim() : regionName;
+        if (!finalRegion) { alert('请选择或输入地区名称'); return; }
+        if (!version.trim()) { alert('请输入版本号'); return; }
+        if (isNewRegion && existingRegions.includes(finalRegion)) { alert('该地区已存在，请从下拉列表中选择'); return; }
+
+        setSaving(true);
+        await new Promise(r => setTimeout(r, 1500));
+
+        onSave({
+          regionName: finalRegion,
+          version: version.trim(),
+          desc: desc.trim(),
+          fileSize: file.size,
+          uploadTime: new Date().toISOString().slice(0, 16).replace('T', ' '),
+          uploader: '李运营',
+          isNewRegion,
+          sourceFile: file,
+        });
+        setSaving(false);
+        onClose();
+      };
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const timestamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+      return (
+        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-[60] p-4" onClick={onClose}>
+          <div className="modal-box modal-animate w-full" style={{ maxWidth: 560, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px 0', flexShrink: 0 }}>
+              <div>
+                <h3 style={{ fontSize: 15, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>关联到点云地图</h3>
+                <p style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontFamily: 'Noto Sans SC, sans-serif' }}>将地图采集数据作为点云地图版本进行管理</p>
+              </div>
+              <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: 4 }} className="hover:text-white">
+                <IconX />
+              </button>
+            </div>
+            <div className="glow-line" style={{ margin: '14px 20px 0', flexShrink: 0 }} />
+
+            <div style={{ padding: '16px 20px 20px', fontFamily: 'Noto Sans SC, sans-serif', overflowY: 'auto', flex: 1 }}>
+              <div style={{
+                background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.15)', borderRadius: 10,
+                padding: '12px 14px', marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Inter, sans-serif' }}>源文件信息</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px' }}>
+                  {[
+                    ['文件描述', file.desc],
+                    ['上传时间', file.uploadTime],
+                    ['采集时长', file.duration],
+                    ['文件大小', file.size],
+                  ].map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+                      <span style={{ fontSize: 10, color: '#475569', whiteSpace: 'nowrap' }}>{k}:</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'Inter, sans-serif' }}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  目标地区 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <select value={regionName} onChange={e => setRegionName(e.target.value)}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                    background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                    fontFamily: 'Noto Sans SC, sans-serif', outline: 'none', cursor: 'pointer',
+                  }}>
+                  <option value="">请选择地区</option>
+                  {existingRegions.map(r => (
+                    <option key={r} value={r}>{r}（现有 {mapData[r].lidar.length} 个版本）</option>
+                  ))}
+                  <option value="__new__">+ 新增地区</option>
+                </select>
+                {isNewRegion && (
+                  <input
+                    type="text" value={newRegionName} onChange={e => setNewRegionName(e.target.value)}
+                    placeholder="输入新地区名称" autoFocus
+                    style={{
+                      width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                      background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                      fontFamily: 'Noto Sans SC, sans-serif', outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                )}
+              </div>
+
+              {selectedRegion && selectedRegion.lidar && selectedRegion.lidar.length > 0 && (
+                <div style={{
+                  background: '#080f1e', border: '1px solid #1a3350', borderRadius: 8,
+                  padding: '10px 12px', marginBottom: 14,
+                }}>
+                  <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>现有版本</div>
+                  {selectedRegion.lidar.map((v, i) => (
+                    <div key={v.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '4px 0', borderBottom: i < selectedRegion.lidar.length - 1 ? '1px solid #0f1a2a' : 'none',
+                    }}>
+                      <span style={{ fontSize: 11, fontFamily: 'Inter, sans-serif' }}>
+                        <span style={{ color: '#00D4FF', fontWeight: 600 }}>v{v.version}</span>
+                        <span style={{ color: '#475569', marginLeft: 8 }}>{v.uploadTime}</span>
+                      </span>
+                      {v.isActive && (
+                        <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 9999, background: 'rgba(0,255,136,0.1)', color: '#00FF88', fontFamily: 'Inter, sans-serif', border: '1px solid rgba(0,255,136,0.2)' }}>当前</span>
+                      )}
+                    </div>
+                  ))}
+                  <div style={{ fontSize: 10, color: '#00D4FF', marginTop: 6, fontFamily: 'Inter, sans-serif' }}>
+                    → 新版本号已自动生成: <span style={{ fontWeight: 700 }}>v{version}</span>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  版本号 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="text" value={version} onChange={e => setVersion(e.target.value)}
+                  placeholder={isNewRegion ? '输入版本号，如 1.0.0' : '自动生成或手动输入'}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                    background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                    fontFamily: 'Inter, sans-serif', outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, color: '#94a3b8', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>
+                  版本描述
+                </label>
+                <textarea
+                  value={desc} onChange={e => setDesc(e.target.value)}
+                  placeholder="描述本次地图采集的变更内容" rows={3}
+                  style={{
+                    width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: 12,
+                    background: '#080f1e', border: '1px solid #1a3350', color: '#e2e8f0',
+                    fontFamily: 'Noto Sans SC, sans-serif', outline: 'none', resize: 'vertical',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div style={{
+                background: 'rgba(0,212,255,0.03)', border: '1px solid rgba(0,212,255,0.1)', borderRadius: 8,
+                padding: '10px 12px', marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 10, color: '#475569', marginBottom: 6, fontFamily: 'Inter, sans-serif', textTransform: 'uppercase' }}>新版本预览</div>
+                <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: '20px', fontFamily: 'Inter, sans-serif' }}>
+                  <div>地区: <span style={{ color: '#00D4FF' }}>{isNewRegion ? (newRegionName || '—') : (regionName || '—')}</span></div>
+                  <div>版本: <span style={{ color: '#00FF88' }}>v{version || '—'}</span></div>
+                  <div>大小: <span style={{ color: '#f59e0b' }}>{file.size}</span></div>
+                  <div>时间: <span style={{ color: '#64748b' }}>{timestamp}</span></div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={onClose}
+                  style={{
+                    padding: '8px 18px', borderRadius: 8, fontSize: 12, fontFamily: 'Noto Sans SC, sans-serif',
+                    background: 'transparent', border: '1px solid #1a3350', color: '#64748b', cursor: 'pointer',
+                  }}>
+                  取消
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  style={{
+                    padding: '8px 18px', borderRadius: 8, fontSize: 12, fontWeight: 500,
+                    fontFamily: 'Noto Sans SC, sans-serif', cursor: 'pointer',
+                    background: 'rgba(147,51,234,0.15)', border: '1px solid rgba(147,51,234,0.4)',
+                    color: '#c084fc', opacity: saving ? 0.6 : 1,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                  </svg>
+                  {saving ? '保存中...' : '关联并创建版本'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [currentPage, setCurrentPage] = useState('vehicles');
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [monitorExpanded, setMonitorExpanded] = useState(false);
+      const [showModal, setShowModal] = useState(false);
+      const [vehicles, setVehicles] = useState([
+        { vin: 'LZGCR123456789012', plate: '鲁B8888', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 WA55', weight: '3100', status: '在线', updateTime: '2026-04-15 12:30:00' },
+        { vin: 'LZGCN987654321098', plate: '鲁B9999', workType: '洒水作业', category: '洒水车', subCategory: '5方洒水车', model: '飞碟 D9', weight: '5500', status: '在线', updateTime: '2026-04-15 08:00:00' },
+        { vin: 'LZGCN111122223333', plate: '鲁B7777', workType: '清运作业', category: '压缩车', subCategory: '7方压缩车', model: '飞碟 ZLJ', weight: '7200', status: '离线', updateTime: '2026-04-14 18:00:00' },
+        { vin: 'LZGCN444455556666', plate: '鲁B6666', workType: '清扫作业', category: '洗扫车', subCategory: '3吨洗扫车', model: '飞碟 T8', weight: '3200', status: '离线', updateTime: '2026-04-15 11:45:00' },
+      ]);
+      const [filter, setFilter] = useState('全部');
+      const [search, setSearch] = useState('');
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [deleteTarget, setDeleteTarget] = useState(null);
+      const [showNewTask, setShowNewTask] = useState(false);
+      const [newTaskVehicle, setNewTaskVehicle] = useState(null);
+      // Anomaly file & map link states
+      const [showFileModal, setShowFileModal] = useState(false);
+      const [selectedVehicleAnomalyFiles, setSelectedVehicleAnomalyFiles] = useState(null);
+      const [mapData, setMapData] = useState(DEFAULT_MAP_DATA);
+      const [showMapLinkModal, setShowMapLinkModal] = useState(false);
+      const [selectedMapLinkFile, setSelectedMapLinkFile] = useState(null);
+
+      const handleDelete = () => {
+        if (deleteTarget) {
+          setVehicles(prev => prev.filter(v => v.vin !== deleteTarget.vin));
+          setDeleteTarget(null);
+        }
+      };
+
+      const handleMapFileOpen = (plate) => {
+        const files = getAnomalyFilesForVehicle(plate);
+        setSelectedVehicleAnomalyFiles({ files, vehicle: plate });
+        setShowFileModal(true);
+      };
+
+      const handleMapLinkOpen = (file) => {
+        setSelectedMapLinkFile(file);
+        setShowMapLinkModal(true);
+      };
+
+      const handleMapLinkSave = (result) => {
+        setMapData(prev => {
+          const newData = { ...prev };
+          if (result.isNewRegion) {
+            newData[result.regionName] = {
+              lidar: [{
+                id: 'LC' + String(Date.now()).slice(-6),
+                regionName: result.regionName,
+                version: result.version,
+                uploadTime: result.uploadTime,
+                uploader: result.uploader,
+                desc: result.desc,
+                fileSize: result.fileSize,
+                isActive: true,
+                type: 'lidar',
+                sourceFileId: result.sourceFile.id,
+              }],
+              vector: [],
+            };
+          } else {
+            const region = prev[result.regionName];
+            if (region) {
+              newData[result.regionName] = {
+                ...region,
+                lidar: [
+                  {
+                    id: 'LC' + String(Date.now()).slice(-6),
+                    regionName: result.regionName,
+                    version: result.version,
+                    uploadTime: result.uploadTime,
+                    uploader: result.uploader,
+                    desc: result.desc,
+                    fileSize: result.fileSize,
+                    isActive: true,
+                    type: 'lidar',
+                    sourceFileId: result.sourceFile.id,
+                  },
+                  ...region.lidar.map(v => ({ ...v, isActive: false })),
+                ],
+              };
+            }
+          }
+          return newData;
+        });
+        alert(`点云地图版本 v${result.version} 已成功关联到「${result.regionName}」`);
+      };
+
+      useEffect(() => {
+        const t = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(t);
+      }, []);
+
+      const addVehicle = (data) => {
+        if (!vehicles.find(v => v.vin === data.vin)) {
+          setVehicles([{ ...data, status: '在线', updateTime: currentTime.toLocaleString('zh-CN') }, ...vehicles]);
+        }
+      };
+
+      const filtered = vehicles.filter(v => {
+        const matchFilter = filter === '全部' || v.status === filter;
+        const matchSearch = !search || v.plate.includes(search) || v.vin.includes(search) || v.model.includes(search) || v.workType.includes(search) || v.category.includes(search) || v.subCategory.includes(search);
+        return matchFilter && matchSearch;
+      });
+
+      const statusColor = { '作业中': 'text-green-400 bg-green-400/10 border-green-400/30', '在线': 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30', '离线': 'text-gray-500 bg-gray-500/10 border-gray-500/30' };
+
+      const counts = { 全部: vehicles.length, '作业中': vehicles.filter(v => v.status === '作业中').length, '在线': vehicles.filter(v => v.status === '在线').length, '离线': vehicles.filter(v => v.status === '离线').length };
+
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <div className={(sidebarOpen ? 'w-56' : 'w-16') + ' bg-gradient-to-b from-[#0d1a2e] to-[#060b18] border-r border-[#1a3350] flex flex-col transition-all duration-300 flex-shrink-0'}>
+            <div className="p-4 border-b border-[#1a3350] flex items-center gap-3 min-h-[60px]">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              {sidebarOpen && (
+                <div className="text-sm font-semibold text-cyan-400 leading-tight">
+                  环卫智控<br /><span className="text-gray-500 text-xs font-normal"></span>
+                </div>
+              )}
+            </div>
+            <nav className="flex-1 py-3 flex flex-col gap-1">
+              <NavItem label="车辆管理" active={true} onClick={() => { }}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+              <NavItem label="作业列表" active={false} onClick={() => window.location.href = 'tasks.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
+              {/* 
+                <NavItem
+                label="作业监控"
+                active={false}
+                onClick={() => window.location.href = 'monitoring.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              */}
+              <NavItem
+                label="路线配置"
+                active={false}
+                onClick={() => window.location.href = 'route-config.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              <NavItem label="地图管理" active={false}
+                onClick={() => window.location.href = 'maps.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+              <NavItem label="prd文档" active={false} onClick={() => window.open('prd.html', '_blank')} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+
+            </nav>
+            <div className="p-3 border-t border-[#1a3350]">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">李</div>
+                {sidebarOpen && <div><div className="text-sm text-gray-300">李运营</div><div className="text-xs text-gray-500">调度员</div></div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Main */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top Bar */}
+            <div className="h-14 bg-gradient-to-r from-[#0d1a2e] to-[#0a1220] border-b border-[#1a3350] flex items-center justify-between px-5 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition-colors p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div className="text-base font-semibold text-white glow-cyan tracking-wide">车辆管理</div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-gray-500 font-mono">{currentTime.toLocaleTimeString('en-GB')}</span>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-5 overflow-auto">
+              {/* Stats 
+              <div className="grid grid-cols-4 gap-4 mb-5">
+                {[['全部', vehicles.length, 'text-white'], ['作业中', vehicles.filter(v => v.status === '作业中').length, 'text-green-400'], ['在线', vehicles.filter(v => v.status === '在线').length, 'text-yellow-400'], ['离线', vehicles.filter(v => v.status === '离线').length, 'text-gray-400']].map(([label, count, color]) => (
+                  <div key={label} className="panel panel-glow rounded-lg p-4">
+                    <div className="text-xs text-gray-500 mb-1.5">{label}</div>
+                    <div className={"text-2xl font-bold " + color}>{count}</div>
+                    <div className="text-xs text-gray-600 mt-0.5">辆</div>
+                  </div>
+                ))}
+              </div>
+              */}
+
+              {/* Filter & Search */}
+              <div className="flex items-center justify-between mb-4 gap-4">
+                <div className="flex gap-2">
+                  {['全部', '在线', '离线'].map(f => (
+                    <button key={f} onClick={() => setFilter(f)}
+                      className={"px-3 py-1.5 rounded text-xs font-medium transition-all " + (filter === f ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/30' : 'text-gray-400 hover:text-white border border-transparent')}>
+                      {f} ({counts[f]})
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 bg-[#0a1220] border border-[#1a3350] rounded-lg px-3 py-2">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                      placeholder="搜索车牌号 / VIN / 型号" className="bg-transparent text-sm text-white placeholder-gray-600 outline-none w-48" />
+                  </div>
+                  <button onClick={() => setShowModal(true)}
+                    className="px-4 py-1.5 rounded text-white text-xs font-medium btn-primary flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    接入车辆
+                  </button>
+                  <button onClick={() => { setNewTaskVehicle(null); setShowNewTask(true); }}
+                    className="px-4 py-1.5 rounded text-white text-xs font-medium btn-success flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                    新建作业
+                  </button>
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="panel panel-glow rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[#0a1220] text-gray-400 text-xs">
+                      {['车牌号', 'VIN码', '作业类型', '车辆大类', '车辆小类', '车辆型号', '总质量(kg)', '状态', '操作'].map(h => (
+                        <th key={h} className="px-3 py-3 text-left font-medium whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((v, i) => (
+                      <tr key={i} className="table-row border-t border-[#1a3350] transition-colors">
+                        <td className="px-3 py-3 font-medium text-white">{v.plate}</td>
+                        <td className="px-3 py-3 font-mono text-gray-400 text-xs">{v.vin}</td>
+                        <td className="px-3 py-3 text-gray-300">{v.workType}</td>
+                        <td className="px-3 py-3 text-gray-300">{v.category}</td>
+                        <td className="px-3 py-3 text-gray-300">{v.subCategory}</td>
+                        <td className="px-3 py-3 text-gray-300">{v.model}</td>
+                        <td className="px-3 py-3 text-gray-300">{v.weight}</td>
+                        <td className="px-3 py-3">
+                          <span className={"px-2.5 py-1 rounded-full text-xs font-medium border " + statusColor[v.status]}>
+                            {v.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-3">
+                          <div className="flex gap-2">
+                            <button onClick={() => window.location.href = 'tasks.html?plate=' + encodeURIComponent(v.plate)} className="text-cyan-400 hover:text-cyan-300 text-xs transition-colors">作业记录</button>
+                            {v.status === '作业中' && (
+                              <button onClick={() => window.location.href = 'monitoring.html?plate=' + encodeURIComponent(v.plate)} className="text-green-400 hover:text-green-300 text-xs transition-colors">作业监控</button>
+                            )}
+                            {(v.status === '在线' || v.status === '离线') && (
+                              <button onClick={() => { setNewTaskVehicle(v.plate); setShowNewTask(true); }} className="text-purple-400 hover:text-purple-300 text-xs transition-colors font-medium">新建作业</button>
+                            )}
+                            <button onClick={() => setDeleteTarget(v)} className="text-red-400 hover:text-red-300 text-xs transition-colors">删除</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filtered.length === 0 && (
+                  <div className="text-center py-12 text-gray-500 text-sm">暂无匹配数据</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {showModal && <VehicleModal onClose={() => setShowModal(false)} onAdd={addVehicle} existingVins={vehicles.map(v => v.vin)} />}
+
+          {showNewTask && (
+            <NewTaskModal
+              onClose={() => { setShowNewTask(false); setNewTaskVehicle(null); }}
+              onCreate={(task) => { window.location.href = 'monitoring.html?vehicle=' + encodeURIComponent(task.vehicle) + '&task=' + encodeURIComponent(task.name); }}
+              vehiclePlate={newTaskVehicle}
+              vehicles={vehicles}
+            />
+          )}
+
+          {showFileModal && selectedVehicleAnomalyFiles && (
+            <FileModal
+              files={selectedVehicleAnomalyFiles.files}
+              vehicle={selectedVehicleAnomalyFiles.vehicle}
+              mapRegions={Object.keys(mapData)}
+              onLinkMap={handleMapLinkOpen}
+              onClose={() => { setShowFileModal(false); setSelectedVehicleAnomalyFiles(null); }}
+            />
+          )}
+          {showMapLinkModal && selectedMapLinkFile && (
+            <MapLinkModal
+              file={selectedMapLinkFile}
+              mapRegions={Object.keys(mapData)}
+              mapData={mapData}
+              onClose={() => { setShowMapLinkModal(false); setSelectedMapLinkFile(null); }}
+              onSave={handleMapLinkSave}
+            />
+          )}
+
+          {/* 删除确认弹窗 */}
+          {deleteTarget && (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={() => setDeleteTarget(null)}>
+              <div className="panel panel-glow rounded-xl w-full max-w-sm mx-4 p-6" onClick={e => e.stopPropagation()}>
+                <div className="text-center">
+                  <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2">确认删除车辆</h3>
+                  <p className="text-gray-400 text-sm mb-6">
+                    确定要删除车辆 <span className="text-cyan-400 font-medium">{deleteTarget.plate}</span> 吗？<br />
+                    此操作不可恢复。
+                  </p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2 rounded-lg border border-[#1a3350] text-gray-400 hover:text-white hover:border-gray-500 transition-colors text-sm">
+                      取消
+                    </button>
+                    <button onClick={handleDelete} className="flex-1 px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-medium">
+                      确认删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+
+</html>

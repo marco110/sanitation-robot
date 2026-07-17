@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>地图管理 - 环卫智控系统</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #060b18;
+      color: #e2e8f0;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #1e3a5f;
+      border-radius: 2px;
+    }
+
+    .glow-cyan {
+      text-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+    }
+
+    .panel {
+      background: linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%);
+      border: 1px solid #1a3350;
+    }
+
+    .panel-glow {
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.04) inset, 0 4px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    .nav-item {
+      transition: all 0.2s;
+    }
+
+    .nav-item.active {
+      border-left: 3px solid #00D4FF;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0066FF, #0044CC);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 102, 255, 0.4);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #00B894, #00856A);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 184, 148, 0.4);
+    }
+
+    .tab-active {
+      background: rgba(0, 212, 255, 0.08);
+      color: #00D4FF;
+      border-bottom: 2px solid #00D4FF;
+    }
+
+    .drop-zone {
+      border: 2px dashed #1a3350;
+      transition: all 0.2s;
+    }
+
+    .drop-zone.dragover {
+      border-color: #00D4FF;
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    .status-active {
+      background: rgba(0, 255, 136, 0.08);
+      color: #00FF88;
+      border: 1px solid rgba(0, 255, 136, 0.3);
+    }
+
+    .status-inactive {
+      background: rgba(255, 107, 107, 0.08);
+      color: #FF6B6B;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
+
+    .blink-dot {
+      animation: blink-dot 1.5s infinite;
+    }
+
+    @keyframes blink-dot {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // ================== 地图预览画布 ==================
+    function VectorMapPreview({ mapType, width, height }) {
+      const canvasRef = useRef(null);
+      const W = width || 600;
+      const H = height || 400;
+
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = W * dpr;
+        canvas.height = H * dpr;
+        ctx.scale(dpr, dpr);
+
+        // Background
+        ctx.fillStyle = '#060b18';
+        ctx.fillRect(0, 0, W, H);
+
+        // Grid
+        ctx.strokeStyle = 'rgba(0,212,255,0.05)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+        if (mapType === 'vector') {
+          // Draw vector map: roads, buildings, green areas
+
+          // Green areas
+          const greens = [
+            { x: 30, y: 30, w: 80, h: 60 },
+            { x: 450, y: 20, w: 100, h: 80 },
+            { x: 50, y: 280, w: 70, h: 70 },
+            { x: 420, y: 260, w: 120, h: 100 },
+          ];
+          greens.forEach(g => {
+            ctx.fillStyle = 'rgba(0,184,148,0.15)';
+            ctx.fillRect(g.x, g.y, g.w, g.h);
+            ctx.strokeStyle = 'rgba(0,184,148,0.4)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(g.x, g.y, g.w, g.h);
+          });
+
+          // Buildings
+          const buildings = [
+            { x: 150, y: 50, w: 60, h: 50 },
+            { x: 230, y: 40, w: 80, h: 70 },
+            { x: 340, y: 60, w: 50, h: 45 },
+            { x: 130, y: 160, w: 70, h: 55 },
+            { x: 240, y: 150, w: 60, h: 60 },
+            { x: 400, y: 140, w: 80, h: 55 },
+            { x: 200, y: 280, w: 90, h: 65 },
+            { x: 330, y: 270, w: 70, h: 60 },
+          ];
+          buildings.forEach(b => {
+            ctx.fillStyle = 'rgba(100,130,160,0.12)';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.strokeStyle = 'rgba(100,130,160,0.35)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+            // Windows
+            for (let row = 0; row < 3; row++) {
+              for (let col = 0; col < Math.floor(b.w / 14); col++) {
+                ctx.fillStyle = 'rgba(200,220,255,0.2)';
+                ctx.fillRect(b.x + 4 + col * 14, b.y + 4 + row * 14, 8, 8);
+              }
+            }
+          });
+
+          // Main roads (wide, dark)
+          const mainRoads = [
+            { x1: 0, y1: 120, x2: W, y2: 120, w: 14 },
+            { x1: 0, y1: 230, x2: W, y2: 230, w: 14 },
+            { x1: 120, y1: 0, x2: 120, y2: H, w: 14 },
+            { x1: 310, y1: 0, x2: 310, y2: H, w: 14 },
+            { x1: 480, y1: 0, x2: 480, y2: H, w: 14 },
+          ];
+          mainRoads.forEach(r => {
+            ctx.fillStyle = '#0d1a2e';
+            if (r.x1 === r.x2) {
+              ctx.fillRect(r.x1 - r.w / 2, r.y1, r.w, r.y2 - r.y1);
+            } else {
+              ctx.fillRect(r.x1, r.y1 - r.w / 2, r.x2 - r.x1, r.w);
+            }
+          });
+
+          // Secondary roads
+          const secRoads = [
+            { x1: 0, y1: 180, x2: 120, y2: 180, w: 8 },
+            { x1: 120, y1: 180, x2: 310, y2: 180, w: 8 },
+            { x1: 310, y1: 180, x2: 480, y2: 180, w: 8 },
+            { x1: 480, y1: 180, x2: W, y2: 180, w: 8 },
+            { x1: 200, y1: 0, x2: 200, y2: 120, w: 8 },
+            { x1: 200, y1: 120, x2: 200, y2: 230, w: 8 },
+            { x1: 200, y1: 230, x2: 200, y2: H, w: 8 },
+            { x1: 400, y1: 120, x2: 400, y2: 230, w: 8 },
+            { x1: 400, y1: 230, x2: 400, y2: H, w: 8 },
+          ];
+          secRoads.forEach(r => {
+            ctx.fillStyle = '#101828';
+            if (r.x1 === r.x2) {
+              ctx.fillRect(r.x1 - r.w / 2, r.y1, r.w, r.y2 - r.y1);
+            } else {
+              ctx.fillRect(r.x1, r.y1 - r.w / 2, r.x2 - r.x1, r.w);
+            }
+          });
+
+          // Road center lines (dashed)
+          ctx.setLineDash([6, 6]);
+          ctx.strokeStyle = '#FFD70044';
+          ctx.lineWidth = 1;
+          mainRoads.forEach(r => {
+            ctx.beginPath();
+            if (r.x1 === r.x2) {
+              ctx.moveTo(r.x1, r.y1);
+              ctx.lineTo(r.x2, r.y2);
+            } else {
+              ctx.moveTo(r.x1, r.y1);
+              ctx.lineTo(r.x2, r.y2);
+            }
+            ctx.stroke();
+          });
+          ctx.setLineDash([]);
+
+          // Road labels
+          ctx.font = '9px Inter, system-ui';
+          ctx.fillStyle = 'rgba(255,215,0,0.5)';
+          ctx.fillText('主路A', 60, 116);
+          ctx.fillText('主路B', 60, 226);
+          ctx.fillText('辅路①', 128, 175);
+          ctx.fillText('辅路②', 318, 175);
+          ctx.fillText('辅路③', 488, 175);
+
+          // POI markers
+          const pois = [
+            { x: 185, y: 100, label: '港口入口', color: '#FF6B6B' },
+            { x: 285, y: 100, label: '综合楼', color: '#FFD700' },
+            { x: 440, y: 100, label: '堆场C', color: '#FFD700' },
+            { x: 60, y: 255, label: '仓库', color: '#FFD700' },
+          ];
+          pois.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+            ctx.font = '9px Inter, system-ui';
+            ctx.fillStyle = p.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(p.label, p.x, p.y - 10);
+          });
+
+        } else {
+          // Point cloud map preview
+          // Draw random dots to simulate point cloud
+          const points = [];
+          for (let i = 0; i < 3000; i++) {
+            points.push({
+              x: Math.random() * W,
+              y: Math.random() * H,
+              r: 0.5 + Math.random() * 1.5,
+              a: 0.2 + Math.random() * 0.6,
+            });
+          }
+
+          // Ground plane (darker)
+          ctx.fillStyle = 'rgba(20,40,60,0.8)';
+          ctx.fillRect(0, H * 0.7, W, H * 0.3);
+
+          // Sky gradient
+          const grad = ctx.createLinearGradient(0, 0, 0, H * 0.7);
+          grad.addColorStop(0, 'rgba(10,20,40,1)');
+          grad.addColorStop(1, 'rgba(20,40,60,0.3)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H * 0.7);
+
+          // Ground gradient
+          const gGrad = ctx.createLinearGradient(0, H * 0.5, 0, H);
+          gGrad.addColorStop(0, 'rgba(20,40,60,0.6)');
+          gGrad.addColorStop(1, 'rgba(10,30,50,1)');
+          ctx.fillStyle = gGrad;
+          ctx.fillRect(0, H * 0.5, W, H * 0.5);
+
+          // Draw point cloud
+          points.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            const colors = ['#00D4FF', '#00A8CC', '#005577', '#80E8FF'];
+            ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+            ctx.globalAlpha = p.a;
+            ctx.fill();
+          });
+          ctx.globalAlpha = 1;
+
+          // Vehicle silhouette in center
+          ctx.save();
+          ctx.translate(W / 2, H / 2);
+          ctx.fillStyle = 'rgba(0,212,255,0.2)';
+          ctx.strokeStyle = 'rgba(0,212,255,0.6)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(-20, -12, 40, 24, 4);
+          ctx.fill();
+          ctx.stroke();
+          // Wheels
+          [[-14, 12], [14, 12]].forEach(([wx, wy]) => {
+            ctx.beginPath();
+            ctx.arc(wx, wy, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0,212,255,0.3)';
+            ctx.fill();
+            ctx.stroke();
+          });
+          ctx.restore();
+
+          // Labels
+          ctx.font = '10px Inter, system-ui';
+          ctx.textAlign = 'left';
+          ctx.fillStyle = 'rgba(0,212,255,0.5)';
+          ctx.fillText('点云密度: 高', 12, 20);
+          ctx.fillText('覆盖率: 98.5%', 12, 36);
+          ctx.fillText('有效点数: 1.2M', 12, 52);
+        }
+      }, [mapType, W, H]);
+
+      return (
+        <canvas ref={canvasRef} style={{ width: W, height: H }} className="w-full h-full rounded" />
+      );
+    }
+
+    // ================== 车辆数据（mock，与 vehicles.html 同步）==================
+    const VEHICLES_DATA = [
+      { vin: 'LZGCR123456789012', plate: '鲁B8888', workType: '清扫作业', category: '洗扫车', model: '飞碟 WA55', status: '作业中' },
+      { vin: 'LZGCN987654321098', plate: '鲁B9999', workType: '洒水作业', category: '洒水车', model: '飞碟 D9', status: '在线' },
+      { vin: 'LZGCN111122223333', plate: '鲁B7777', workType: '清运作业', category: '压缩车', model: '飞碟 ZLJ', status: '离线' },
+      { vin: 'LZGCN444455556666', plate: '鲁B6666', workType: '清扫作业', category: '洗扫车', model: '飞碟 T8', status: '作业中' },
+    ];
+
+    // ================== 车辆下发选择弹窗 ==================
+    function VehicleDeployModal({ title, subtitle, onClose, onConfirm, preSelected }) {
+      const [selected, setSelected] = useState(new Set(preSelected || []));
+      const [search, setSearch] = useState('');
+      const [confirming, setConfirming] = useState(false);
+
+      const filtered = VEHICLES_DATA.filter(v =>
+        !search || v.plate.includes(search) || v.model.includes(search) || v.workType.includes(search)
+      );
+
+      const toggle = (plate) => {
+        setSelected(prev => {
+          const next = new Set(prev);
+          next.has(plate) ? next.delete(plate) : next.add(plate);
+          return next;
+        });
+      };
+
+      const selectAll = () => {
+        const allPlates = filtered.map(v => v.plate);
+        const allSelected = allPlates.every(p => selected.has(p));
+        if (allSelected) {
+          allPlates.forEach(p => selected.delete(p));
+          setSelected(new Set(selected));
+        } else {
+          allPlates.forEach(p => selected.add(p));
+          setSelected(new Set(selected));
+        }
+      };
+
+      const handleConfirm = async () => {
+        if (selected.size === 0) { alert('请至少选择一辆车辆'); return; }
+        setConfirming(true);
+        await new Promise(r => setTimeout(r, 1200));
+        onConfirm([...selected]);
+      };
+
+      const statusColor = { '作业中': 'text-green-400 bg-green-400/10', '在线': 'text-yellow-400 bg-yellow-400/10', '离线': 'text-gray-500 bg-gray-500/10' };
+
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
+          <div className="panel panel-glow rounded-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[#1a3350] flex-shrink-0">
+              <div>
+                <h3 className="text-sm font-semibold text-white">{title || '选择下发车辆'}</h3>
+                {subtitle && <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>}
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-[#1a3350] flex-shrink-0">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="搜索车牌号或车型..."
+                  className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60" />
+              </div>
+            </div>
+
+            <div className="p-2 flex-shrink-0">
+              <button onClick={selectAll}
+                className="text-xs text-cyan-400 hover:text-white px-3 py-1 rounded border border-cyan-400/30 hover:bg-cyan-400/10 transition-all ml-2">
+                {filtered.every(v => selected.has(v.plate)) ? '取消全选' : '全选'}
+              </button>
+              <span className="text-xs text-gray-500 ml-2">已选 <span className="text-cyan-400 font-medium">{selected.size}</span> 辆</span>
+            </div>
+
+            <div className="flex-1 overflow-auto p-2" style={{ minHeight: 0 }}>
+              <div className="space-y-1">
+                {filtered.map(v => {
+                  const isSel = selected.has(v.plate);
+                  return (
+                    <div key={v.vin}
+                      onClick={() => toggle(v.plate)}
+                      className={"flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border " + (isSel ? 'bg-cyan-400/10 border-cyan-400/30' : 'bg-[#0a1220]/50 border-transparent hover:border-[#1a3350]')}>
+                      <div className={"w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 border-2 transition-all " + (isSel ? 'bg-cyan-400 border-cyan-400' : 'border-[#1a3350]')}>
+                        {isSel && <svg className="w-3 h-3 text-[#060b18]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-white">{v.plate}</span>
+                          <span className={"text-xs px-1.5 py-0.5 rounded " + (statusColor[v.status] || 'text-gray-500')}>{v.status}</span>
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">{v.model} · {v.workType}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <div className="text-center text-xs text-gray-500 py-6">没有找到匹配的车辆</div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 p-4 border-t border-[#1a3350] flex-shrink-0">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 text-sm hover:text-white transition-colors border border-[#1a3350]">取消</button>
+              <button onClick={handleConfirm} disabled={confirming || selected.size === 0}
+                className={"px-5 py-2 rounded-lg text-white text-sm font-medium flex items-center gap-2 " + (confirming || selected.size === 0 ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-blue-600 cursor-pointer hover:shadow-lg hover:shadow-cyan-500/25')}>
+                {confirming ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    下发中...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    确认下发 ({selected.size})
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 地图服务地址编辑弹窗 ==================
+    function MapServiceUrlEditModal({ item, currentUrl, onClose, onConfirm }) {
+      const [url, setUrl] = useState(currentUrl || '');
+
+      const handleSave = () => {
+        onConfirm(item.id, url.trim());
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={onClose}>
+          <div className="panel panel-glow rounded-xl w-full max-w-md mx-4" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-4 border-b border-[#1a3350]">
+              <div>
+                <h3 className="text-sm font-semibold text-white">设置地图服务地址</h3>
+                <p className="text-xs text-gray-500 mt-0.5">{item.regionName} · 矢量 v{item.version}</p>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">
+                  地图服务地址 <span className="text-gray-600">(非必填)</span>
+                </label>
+                <input type="text" value={url} onChange={e => setUrl(e.target.value)}
+                  placeholder="如：https://maps.example.com/tiles/{z}/{x}/{y}.pbf"
+                  className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-400/60" />
+                <p className="text-xs text-gray-500 mt-1">车辆通过该地址加载矢量瓦片服务，留空则清除已有地址</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 p-4 border-t border-[#1a3350]">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 text-sm hover:text-white transition-colors border border-[#1a3350]">取消</button>
+              <button onClick={handleSave}
+                className="px-5 py-2 rounded-lg text-white text-sm font-medium bg-gradient-to-r from-orange-500 to-amber-600 cursor-pointer hover:shadow-lg hover:shadow-orange-500/25">
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 上传弹窗（统一版本管理）====================
+    function UploadModal({ regionOptions, onClose, onUpload, initialRegion, mapType }) {
+      const [regionName, setRegionName] = useState(initialRegion || '');
+      const [newRegionName, setNewRegionName] = useState('');
+      const [version, setVersion] = useState('');
+      const [desc, setDesc] = useState('');
+      const [lidarFile, setLidarFile] = useState(null);
+      const [vectorFile, setVectorFile] = useState(null);
+      const [dragoverLidar, setDragoverLidar] = useState(false);
+      const [dragoverVector, setDragoverVector] = useState(false);
+      const [uploading, setUploading] = useState(false);
+      const [uploadMode, setUploadMode] = useState(mapType || 'both'); // lidar | vector | both
+      const [deployVehicles, setDeployVehicles] = useState(new Set());
+      const [mapServiceUrl, setMapServiceUrl] = useState('');
+      const lidarRef = useRef(null);
+      const vectorRef = useRef(null);
+
+      const toggleDeployVehicle = (plate) => {
+        setDeployVehicles(prev => {
+          const next = new Set(prev);
+          next.has(plate) ? next.delete(plate) : next.add(plate);
+          return next;
+        });
+      };
+
+      const selectAllDeploy = () => {
+        const allPlates = VEHICLES_DATA.map(v => v.plate);
+        const allSelected = allPlates.every(p => deployVehicles.has(p));
+        setDeployVehicles(allSelected ? new Set() : new Set(allPlates));
+      };
+
+      const handleLidarFile = (f) => {
+        if (!f) return;
+        if (f.type !== 'application/octet-stream' && !f.name.match(/\.(pcd|ply|las|bin|zip)$/i)) {
+          alert('点云地图支持 PCD、PLY、LAS、BIN、ZIP 格式');
+          return;
+        }
+        setLidarFile(f);
+      };
+
+      const handleVectorFile = (f) => {
+        if (!f) return;
+        if (f.type !== 'application/pdf' && f.type !== 'application/zip' && f.type !== 'application/x-zip-compressed' && !f.name.match(/\.(pdf|zip|png|jpg)$/i)) {
+          alert('矢量地图支持 PDF、ZIP、PNG、JPG 格式');
+          return;
+        }
+        setVectorFile(f);
+      };
+
+      const handleUpload = async () => {
+        const finalRegion = regionName === '__new__' ? newRegionName.trim() : regionName;
+        if (!finalRegion) { alert('请选择或输入地区名称'); return; }
+        if (!lidarFile && !vectorFile) { alert('请至少上传一个地图文件'); return; }
+        setUploading(true);
+        await new Promise(r => setTimeout(r, 1800));
+
+        const deployPlates = [...deployVehicles];
+        if (lidarFile) {
+          onUpload({ regionName: finalRegion, desc: desc.trim(), file: lidarFile, type: 'lidar', version, deployVehicles: deployPlates });
+        }
+        if (vectorFile) {
+          onUpload({ regionName: finalRegion, desc: desc.trim(), file: vectorFile, type: 'vector', version, deployVehicles: deployPlates, mapServiceUrl: mapServiceUrl.trim() });
+        }
+        setUploading(false);
+        onClose();
+      };
+
+      const lidarSize = lidarFile ? (lidarFile.size / (1024 * 1024)).toFixed(2) + ' MB' : null;
+      const vectorSize = vectorFile ? (vectorFile.size / (1024 * 1024)).toFixed(2) + ' MB' : null;
+
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+          <div className="panel panel-glow rounded-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-[#1a3350]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-cyan-400/10 to-orange-400/10">
+                  <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white">上传地图</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">点云和矢量地图共用同一版本信息</p>
+                </div>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {/* 地区选择 */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">地区名称 <span className="text-red-400">*</span></label>
+                <select value={regionName} onChange={e => setRegionName(e.target.value)}
+                  className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400/60">
+                  <option value="">请选择地区</option>
+                  {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
+                  <option value="__new__">+ 新增地区</option>
+                </select>
+                {regionName === '__new__' && (
+                  <input type="text" value={newRegionName} onChange={e => setNewRegionName(e.target.value)}
+                    placeholder="输入新地区名称" autoFocus
+                    className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60 mt-2" />
+                )}
+              </div>
+
+              {/* 版本信息 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">版本号 <span className="text-red-400">*</span></label>
+                  <input type="text" value={version} onChange={e => setVersion(e.target.value)}
+                    placeholder="如：1.0.0"
+                    className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">版本描述 <span className="text-gray-600">(非必填)</span></label>
+                  <input type="text" value={desc} onChange={e => setDesc(e.target.value)}
+                    placeholder="如：更新边界数据"
+                    className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60" />
+                </div>
+              </div>
+
+              {/* 文件类型选择 */}
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">选择要上传的文件类型</label>
+                <div className="flex gap-3">
+                  <button onClick={() => setUploadMode('lidar')}
+                    className={"flex-1 py-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 " + (
+                      uploadMode === 'lidar'
+                        ? 'bg-cyan-400/10 border-cyan-400/50 text-cyan-400'
+                        : 'bg-[#0a1220] border-[#1a3350] text-gray-400 hover:border-cyan-400/30')}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    仅点云地图
+                    {lidarFile && <span className="w-2 h-2 rounded-full bg-cyan-400"></span>}
+                  </button>
+                  <button onClick={() => setUploadMode('vector')}
+                    className={"flex-1 py-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 " + (
+                      uploadMode === 'vector'
+                        ? 'bg-orange-400/10 border-orange-400/50 text-orange-400'
+                        : 'bg-[#0a1220] border-[#1a3350] text-gray-400 hover:border-orange-400/30')}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7" /></svg>
+                    仅矢量地图
+                    {vectorFile && <span className="w-2 h-2 rounded-full bg-orange-400"></span>}
+                  </button>
+                  <button onClick={() => setUploadMode('both')}
+                    className={"flex-1 py-3 rounded-lg border text-sm font-medium transition-all flex items-center justify-center gap-2 " + (
+                      uploadMode === 'both'
+                        ? 'bg-gradient-to-r from-cyan-400/10 to-orange-400/10 border-cyan-400/30 text-white'
+                        : 'bg-[#0a1220] border-[#1a3350] text-gray-400 hover:border-cyan-400/30')}>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    两者都上传
+                    {lidarFile && vectorFile && <span className="w-2 h-2 rounded-full bg-gradient-to-r from-cyan-400 to-orange-400"></span>}
+                  </button>
+                </div>
+              </div>
+
+              {/* 点云地图上传 */}
+              {(uploadMode === 'lidar' || uploadMode === 'both') && (
+                <div className="border border-[#1a3350] rounded-lg p-4 bg-[#0a1220]/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-5 h-5 rounded bg-cyan-400/20 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                    </div>
+                    <span className="text-sm font-medium text-cyan-400">点云地图文件</span>
+                    <span className="text-xs text-gray-500 ml-auto">支持 PCD、PLY、LAS、BIN、ZIP</span>
+                  </div>
+                  <div
+                    className={"drop-zone rounded-lg p-6 text-center cursor-pointer transition-all " + (dragoverLidar ? 'dragover' : '')}
+                    onDragOver={e => { e.preventDefault(); setDragoverLidar(true); }}
+                    onDragLeave={() => setDragoverLidar(false)}
+                    onDrop={e => { e.preventDefault(); setDragoverLidar(false); handleLidarFile(e.dataTransfer.files[0]); }}
+                    onClick={() => lidarRef.current.click()}
+                  >
+                    {lidarFile ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <svg className="w-6 h-6 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <div className="text-left">
+                          <div className="text-sm text-white font-medium">{lidarFile.name}</div>
+                          <div className="text-xs text-gray-500">{lidarSize}</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); setLidarFile(null); }}
+                          className="ml-2 text-gray-400 hover:text-red-400 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <svg className="w-8 h-8 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                        <div className="text-sm text-gray-400">拖拽点云文件或<span className="text-cyan-400 cursor-pointer hover:underline">点击上传</span></div>
+                      </>
+                    )}
+                    <input ref={lidarRef} type="file" className="hidden" accept=".pcd,.ply,.las,.bin,.zip"
+                      onChange={e => handleLidarFile(e.target.files[0])} />
+                  </div>
+                </div>
+              )}
+
+              {/* 矢量地图上传 */}
+              {(uploadMode === 'vector' || uploadMode === 'both') && (
+                <div className="border border-[#1a3350] rounded-lg p-4 bg-[#0a1220]/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-5 h-5 rounded bg-orange-400/20 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7" /></svg>
+                    </div>
+                    <span className="text-sm font-medium text-orange-400">矢量地图文件</span>
+                    <span className="text-xs text-gray-500 ml-auto">支持 PDF、ZIP、PNG、JPG</span>
+                  </div>
+                  <div
+                    className={"drop-zone rounded-lg p-6 text-center cursor-pointer transition-all " + (dragoverVector ? 'dragover' : '')}
+                    onDragOver={e => { e.preventDefault(); setDragoverVector(true); }}
+                    onDragLeave={() => setDragoverVector(false)}
+                    onDrop={e => { e.preventDefault(); setDragoverVector(false); handleVectorFile(e.dataTransfer.files[0]); }}
+                    onClick={() => vectorRef.current.click()}
+                  >
+                    {vectorFile ? (
+                      <div className="flex items-center justify-center gap-3">
+                        <svg className="w-6 h-6 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <div className="text-left">
+                          <div className="text-sm text-white font-medium">{vectorFile.name}</div>
+                          <div className="text-xs text-gray-500">{vectorSize}</div>
+                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); setVectorFile(null); }}
+                          className="ml-2 text-gray-400 hover:text-red-400 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <svg className="w-8 h-8 text-gray-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                        <div className="text-sm text-gray-400">拖拽矢量文件或<span className="text-orange-400 cursor-pointer hover:underline">点击上传</span></div>
+                      </>
+                    )}
+                    <input ref={vectorRef} type="file" className="hidden" accept=".pdf,.zip,.png,.jpg,.jpeg"
+                      onChange={e => handleVectorFile(e.target.files[0])} />
+                  </div>
+
+                  {/* 地图服务地址（矢量地图非必填） */}
+                  <div className="mt-3">
+                    <label className="block text-sm text-gray-400 mb-1.5">
+                      地图服务地址 <span className="text-gray-600">(非必填)</span>
+                    </label>
+                    <input type="text" value={mapServiceUrl} onChange={e => setMapServiceUrl(e.target.value)}
+                      placeholder="如：https://maps.example.com/tiles/{z}/{x}/{y}.pbf"
+                      className="w-full bg-[#060b18] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-orange-400/60" />
+                    <p className="text-xs text-gray-500 mt-1">填写后车辆可通过该地址加载矢量瓦片服务</p>
+                  </div>
+                </div>
+              )}
+
+              {/* 车辆下发选择（点云地图上传时显示） */}
+              {(uploadMode === 'lidar' || uploadMode === 'both') && (
+                <div className="border border-[#1a3350] rounded-lg p-4 bg-[#0a1220]/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded bg-purple-400/20 flex items-center justify-center">
+                        <svg className="w-3 h-3 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                      </div>
+                      <span className="text-sm font-medium text-purple-400">选择下发车辆</span>
+                    </div>
+                    <button onClick={selectAllDeploy}
+                      className="text-xs text-cyan-400 hover:text-white px-2 py-1 rounded border border-cyan-400/30 hover:bg-cyan-400/10 transition-all">
+                      {VEHICLES_DATA.every(v => deployVehicles.has(v.plate)) ? '取消全选' : '全选'}
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {VEHICLES_DATA.map(v => {
+                      const isSel = deployVehicles.has(v.plate);
+                      return (
+                        <div key={v.vin}
+                          onClick={() => toggleDeployVehicle(v.plate)}
+                          className={"flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer border text-xs transition-all " + (isSel ? 'bg-purple-400/10 border-purple-400/40 text-purple-300' : 'bg-[#060b18] border-[#1a3350] text-gray-400 hover:border-purple-400/20')}>
+                          <div className={"w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-all " + (isSel ? 'bg-purple-400 border-purple-400' : 'border-[#1a3350]')}>
+                            {isSel && <svg className="w-2.5 h-2.5 text-[#060b18]" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                          </div>
+                          <span className={isSel ? 'text-purple-300 font-medium' : 'text-gray-400'}>{v.plate}</span>
+                          <span className="text-gray-500 hidden sm:inline">{v.model}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#1a3350]">
+                    <svg className="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    <span className="text-xs text-gray-500">
+                      {deployVehicles.size > 0
+                        ? `已选择 ${deployVehicles.size} 辆车，上传完成后将自动下发到所选车辆`
+                        : '请选择需要下发地图的车辆（可跳过，稍后在版本管理中重新下发）'}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* 提示 */}
+              <div className="bg-[#0a1220] border border-[#1a3350] rounded-lg p-3 text-xs text-gray-500 flex items-start gap-2">
+                <svg className="w-4 h-4 mt-0.5 text-cyan-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <div>
+                  <div className="text-gray-400 mb-0.5">上传说明：</div>
+                  <div>· 点云和矢量地图共用同一版本号和版本描述</div>
+                  <div>· 由于文件较大，支持分别上传点云和矢量地图</div>
+                  <div>· 上传后可在地区详情中查看和管理历史版本</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex justify-end gap-2 p-5 border-t border-[#1a3350]">
+              <button onClick={onClose} className="px-4 py-2 rounded-lg text-gray-400 text-sm hover:text-white transition-colors border border-[#1a3350]">取消</button>
+              <button onClick={handleUpload} disabled={uploading || (regionName === '__new__' && !newRegionName.trim()) || (!lidarFile && !vectorFile)}
+                className={"px-5 py-2 rounded-lg text-white text-sm font-medium " + (uploading || (regionName === '__new__' && !newRegionName.trim()) || (!lidarFile && !vectorFile) ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'btn-success cursor-pointer')}>
+                {uploading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    上传中...
+                  </span>
+                ) : '确认上传'}
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 详情弹窗 ==================
+    function DetailModal({ item, onClose }) {
+      const isVector = item.type === 'vector';
+      return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50" onClick={onClose}>
+          <div className="panel panel-glow rounded-xl w-full max-w-2xl mx-4 max-h-[85vh] overflow-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-[#1a3350]">
+              <h2 className="text-base font-semibold text-white">{item.regionName} - {item.version}</h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-white"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div className="p-5">
+              <div className="rounded-lg overflow-hidden border border-[#1a3350]" style={{ height: 400 }}>
+                <VectorMapPreview mapType={item.type} width={700} height={400} />
+              </div>
+            </div>
+            <div className="flex justify-end p-5 border-t border-[#1a3350]">
+              <button onClick={onClose} className="px-5 py-2 rounded-lg text-white text-sm border border-[#1a3350] hover:border-cyan-400/40 transition-colors">关闭</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ================== 导航组件 ==================
+    function NavItem({ label, icon, active, onClick }) {
+      return (
+        <button onClick={onClick}
+          className={`nav-item w-full flex items-center gap-3 px-4 py-3 text-sm text-left transition-all ${active ? 'text-cyan-400 bg-cyan-400/5 border-l-[3px] border-cyan-400' : 'text-gray-400 border-l-[3px] border-transparent'}`}>
+          {icon}
+          <span>{label}</span>
+        </button>
+      );
+    }
+
+    // ================== 主应用 ==================
+    function App() {
+      const [currentPage, setCurrentPage] = useState('maps');
+      const [sidebarOpen, setSidebarOpen] = useState(true);
+      const [currentTime, setCurrentTime] = useState(new Date());
+      const [showUpload, setShowUpload] = useState(false);
+      const [selectedItem, setSelectedItem] = useState(null);
+      const [expandedRegion, setExpandedRegion] = useState(null);
+      const [uploadMapType, setUploadMapType] = useState(null); // 'lidar', 'vector', or null
+      const [searchMapName, setSearchMapName] = useState(''); // 地图名称搜索 - 实时输入
+      const [appliedSearch, setAppliedSearch] = useState(''); // 已应用的搜索词
+      // 下发管理
+      const [deployments, setDeployments] = useState({}); // { [mapVersionId]: ['鲁B8888', '鲁B6666'] }
+      const [showDeployModal, setShowDeployModal] = useState(false);
+      const [deployTarget, setDeployTarget] = useState(null); // { item, onDone } or null
+      // 地图服务地址管理
+      const [mapServiceUrls, setMapServiceUrls] = useState({
+        'VC001': 'https://eserver5.geovisearth.com/4/e-server/wfs?service=WFS&version=1.0.0&request=GetFeature&typename=WP-2065252339390451712&outputFormat=application/json&srsname=EPSG:4326&bbox={bbox}',
+        'VC004': 'https://eserver5.geovisearth.com/4/e-server/wfs?service=WFS&version=1.0.0&request=GetFeature&typename=WP-2065252339390451712&outputFormat=application/json&srsname=EPSG:4326&bbox={bbox}',
+        'VC007': 'https://eserver5.geovisearth.com/4/e-server/wfs?service=WFS&version=1.0.0&request=GetFeature&typename=WP-2065252339390451712&outputFormat=application/json&srsname=EPSG:4326&bbox={bbox}',
+      });
+      const [showServiceUrlModal, setShowServiceUrlModal] = useState(false);
+      const [serviceUrlTarget, setServiceUrlTarget] = useState(null);
+
+      // 统一数据：每个地区包含点云和矢量地图
+      const [mapData, setMapData] = useState({
+        '港口A区': {
+          lidar: [
+            { id: 'LC001', regionName: '港口A区', version: '1.0.2', uploadTime: '2026-04-10 14:32', uploader: '李运营', desc: '更新堆场C区边界，新增入口辅路数据', fileSize: '128.5 MB', isActive: true, type: 'lidar' },
+            { id: 'LC002', regionName: '港口A区', version: '1.0.1', uploadTime: '2026-03-28 09:15', uploader: '王调度', desc: '修正北侧道路点云偏移', fileSize: '115.2 MB', isActive: false, type: 'lidar' },
+            { id: 'LC003', regionName: '港口A区', version: '1.0.0', uploadTime: '2026-03-01 10:00', uploader: '张管理员', desc: '初始版本，覆盖全区域', fileSize: '98.7 MB', isActive: false, type: 'lidar' },
+          ],
+          vector: [
+            { id: 'VC001', regionName: '港口A区', version: '2.1.0', uploadTime: '2026-04-12 16:45', uploader: '李运营', desc: '新增主路B中段，更新港口入口标识', fileSize: '8.4 MB', isActive: true, type: 'vector' },
+            { id: 'VC002', regionName: '港口A区', version: '2.0.0', uploadTime: '2026-03-20 10:30', uploader: '王调度', desc: '新增辅路①②③，更新堆场C区', fileSize: '7.8 MB', isActive: false, type: 'vector' },
+            { id: 'VC003', regionName: '港口A区', version: '1.0.0', uploadTime: '2026-02-15 09:00', uploader: '张管理员', desc: '初始矢量地图', fileSize: '5.2 MB', isActive: false, type: 'vector' },
+          ],
+        },
+        '综合楼周边': {
+          lidar: [
+            { id: 'LC004', regionName: '综合楼周边', version: '1.0.1', uploadTime: '2026-04-08 11:20', uploader: '李运营', desc: '新增停车场区域', fileSize: '45.3 MB', isActive: true, type: 'lidar' },
+            { id: 'LC005', regionName: '综合楼周边', version: '1.0.0', uploadTime: '2026-03-05 08:30', uploader: '张管理员', desc: '初始建图', fileSize: '38.1 MB', isActive: false, type: 'lidar' },
+          ],
+          vector: [
+            { id: 'VC004', regionName: '综合楼周边', version: '1.0.2', uploadTime: '2026-04-09 15:00', uploader: '李运营', desc: '更新停车场边界', fileSize: '3.1 MB', isActive: true, type: 'vector' },
+            { id: 'VC005', regionName: '综合楼周边', version: '1.0.1', uploadTime: '2026-03-18 11:00', uploader: '张管理员', desc: '修正绿化带区域', fileSize: '2.9 MB', isActive: false, type: 'vector' },
+            { id: 'VC006', regionName: '综合楼周边', version: '1.0.0', uploadTime: '2026-02-20 08:00', uploader: '张管理员', desc: '', fileSize: '2.5 MB', isActive: false, type: 'vector' },
+          ],
+        },
+        '堆场C区': {
+          lidar: [
+            { id: 'LC006', regionName: '堆场C区', version: '1.0.0', uploadTime: '2026-04-01 13:00', uploader: '王调度', desc: '初始建图', fileSize: '156.8 MB', isActive: true, type: 'lidar' },
+          ],
+          vector: [
+            { id: 'VC007', regionName: '堆场C区', version: '1.0.1', uploadTime: '2026-04-05 14:00', uploader: '王调度', desc: '新增C区内部通道', fileSize: '4.2 MB', isActive: true, type: 'vector' },
+            { id: 'VC008', regionName: '堆场C区', version: '1.0.0', uploadTime: '2026-03-10 10:00', uploader: '张管理员', desc: '初始矢量地图', fileSize: '3.8 MB', isActive: false, type: 'vector' },
+          ],
+        },
+      });
+
+      useEffect(() => {
+        const t = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(t);
+      }, []);
+
+      const allRegions = Object.keys(mapData);
+      const regions = appliedSearch
+        ? allRegions.filter(r => {
+            const q = appliedSearch.toLowerCase();
+            if (r.toLowerCase().includes(q)) return true;
+            return [...mapData[r].lidar, ...mapData[r].vector].some(v =>
+              v.version.toLowerCase().includes(q) ||
+              (v.desc && v.desc.toLowerCase().includes(q)) ||
+              (v.uploader && v.uploader.toLowerCase().includes(q))
+            );
+          })
+        : allRegions;
+      const allLidarVersions = allRegions.flatMap(r => mapData[r].lidar);
+      const allVectorVersions = allRegions.flatMap(r => mapData[r].vector);
+      const filteredLidar = regions.flatMap(r => mapData[r].lidar);
+      const filteredVector = regions.flatMap(r => mapData[r].vector);
+      const totalVersions = allLidarVersions.length + allVectorVersions.length;
+
+      const handleUpload = ({ regionName, desc, file, type, version, deployVehicles, mapServiceUrl }) => {
+        const newId = (type === 'lidar' ? 'LC' : 'VC') + String(Date.now()).slice(-4);
+        setMapData(prev => {
+          const newItem = {
+            id: newId,
+            regionName, version: version || '1.0.0',
+            uploadTime: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-'),
+            uploader: '李运营',
+            desc,
+            fileSize: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+            isActive: true, type,
+          };
+
+          // 如果地区不存在，创建一个新地区
+          const updatedRegion = prev[regionName] ? { ...prev[regionName] } : { lidar: [], vector: [] };
+          const targetList = type === 'lidar' ? [...updatedRegion.lidar] : [...updatedRegion.vector];
+
+          // 新版本设为active，旧版本设为inactive
+          const updatedList = [newItem, ...targetList.map(v => ({ ...v, isActive: false }))];
+
+          if (type === 'lidar') {
+            updatedRegion.lidar = updatedList;
+          } else {
+            updatedRegion.vector = updatedList;
+          }
+
+          return { ...prev, [regionName]: updatedRegion };
+        });
+
+        // 记录下发
+        if (deployVehicles && deployVehicles.length > 0) {
+          setDeployments(prev => ({ ...prev, [newId]: deployVehicles }));
+        }
+        // 记录地图服务地址（仅矢量地图）
+        if (type === 'vector' && mapServiceUrl) {
+          setMapServiceUrls(prev => ({ ...prev, [newId]: mapServiceUrl }));
+        }
+      };
+
+      const handleSetActive = (item) => {
+        setMapData(prev => {
+          const region = prev[item.regionName];
+          if (!region) return prev;
+
+          const targetList = item.type === 'lidar' ? [...region.lidar] : [...region.vector];
+          const updated = targetList.map(v => ({ ...v, isActive: v.id === item.id }));
+
+          return {
+            ...prev,
+            [item.regionName]: {
+              ...region,
+              [item.type]: updated,
+            },
+          };
+        });
+      };
+
+      const handleDownload = (item) => {
+        const fileName = `${item.regionName}_${item.type}_v${item.version}.json`;
+        const content = JSON.stringify({
+          regionName: item.regionName,
+          version: item.version,
+          uploadTime: item.uploadTime,
+          uploader: item.uploader,
+          description: item.desc,
+          fileSize: item.fileSize,
+          type: item.type,
+          id: item.id,
+        }, null, 2);
+        const blob = new Blob([content], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+      };
+
+      const handleDeployOpen = (item) => {
+        setDeployTarget({ item });
+        setShowDeployModal(true);
+      };
+
+      const handleDeployConfirm = (plates) => {
+        if (deployTarget && deployTarget.item) {
+          setDeployments(prev => ({ ...prev, [deployTarget.item.id]: plates }));
+        }
+        setShowDeployModal(false);
+        setDeployTarget(null);
+      };
+
+      const handleServiceUrlConfirm = (id, url) => {
+        setMapServiceUrls(prev => {
+          const next = { ...prev };
+          if (url) {
+            next[id] = url;
+          } else {
+            delete next[id];
+          }
+          return next;
+        });
+      };
+
+      const openUploadModal = (mapType) => {
+        setUploadMapType(mapType);
+        setShowUpload(true);
+      };
+
+      return (
+        <div className="flex h-screen overflow-hidden">
+          {/* Sidebar */}
+          <div className={(sidebarOpen ? 'w-56' : 'w-16') + ' bg-gradient-to-b from-[#0d1a2e] to-[#060b18] border-r border-[#1a3350] flex flex-col transition-all duration-300 flex-shrink-0'}>
+            <div className="p-4 border-b border-[#1a3350] flex items-center gap-3 min-h-[60px]">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              {sidebarOpen && <div className="text-sm font-semibold text-cyan-400 leading-tight">环卫智控<br /><span className="text-gray-500 text-xs font-normal">系统平台</span></div>}
+            </div>
+            <nav className="flex-1 py-3 flex flex-col gap-1">
+              <NavItem label="车辆管理" active={false} onClick={() => window.location.href = 'vehicles.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
+              <NavItem label="作业列表" active={false} onClick={() => window.location.href = 'tasks.html'} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>} />
+              {/* 
+                <NavItem
+                label="作业监控"
+                active={false}
+                onClick={() => window.location.href = 'monitoring.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              */}
+              <NavItem
+                label="路线配置"
+                active={false}
+                onClick={() => window.location.href = 'route-config.html'}
+                icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>}
+              />
+              <NavItem label="地图管理" active={true} onClick={() => { }} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+              <NavItem label="prd文档" active={false} onClick={() => window.open('prd.html', '_blank')} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg>} />
+            </nav>
+            <div className="p-3 border-t border-[#1a3350]">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">李</div>
+                {sidebarOpen && <div><div className="text-sm text-gray-300">李运营</div><div className="text-xs text-gray-500">调度员</div></div>}
+              </div>
+            </div>
+          </div>
+
+          {/* Main */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Top Bar */}
+            <div className="h-14 bg-gradient-to-r from-[#0d1a2e] to-[#0a1220] border-b border-[#1a3350] flex items-center justify-between px-5 flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-400 hover:text-white transition-colors p-1">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div className="text-base font-semibold text-white glow-cyan tracking-wide">地图管理</div>
+                <div className="flex items-center gap-2 ml-2">
+                  <input
+                    type="text"
+                    value={searchMapName}
+                    onChange={e => setSearchMapName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { setAppliedSearch(searchMapName.trim()); setExpandedRegion(null); } }}
+                    placeholder="搜索地图名称..."
+                    className="bg-[#0a1220] border border-[#1a3350] rounded-md px-3 py-1 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-400/60 w-48"
+                  />
+                  <button onClick={() => { setAppliedSearch(searchMapName.trim()); setExpandedRegion(null); }} className="px-3 py-1 rounded-md text-xs bg-cyan-400/20 text-cyan-400 border border-cyan-400/30 hover:bg-cyan-400/30 transition-all flex items-center gap-1">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    搜索
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-gray-500 font-mono">{currentTime.toLocaleTimeString('en-GB')}</span>
+                <button onClick={() => openUploadModal(null)} className="px-4 py-1.5 rounded text-white text-xs font-medium btn-primary flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                  上传地图
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 p-5 overflow-auto">
+              {/* Stats 
+              <div className="grid grid-cols-4 gap-4 mb-5">
+                {[
+                  { label: '地图地区', value: regions.length, icon: '📍', color: 'text-cyan-400', bg: 'bg-cyan-400/5' },
+                  { label: '点云版本', value: filteredLidar.length, icon: '🌐', color: 'text-cyan-400', bg: 'bg-cyan-400/5' },
+                  { label: '矢量版本', value: filteredVector.length, icon: '🗺️', color: 'text-orange-400', bg: 'bg-orange-400/5' },
+                  { label: '总版本数', value: filteredLidar.length + filteredVector.length, icon: '📋', color: 'text-blue-400', bg: 'bg-blue-400/5' },
+                ].map(s => (
+                  <div key={s.label} className="panel panel-glow rounded-lg p-4 flex items-center gap-3">
+                    <div className={"w-10 h-10 rounded-lg flex items-center justify-center text-lg " + s.bg}>{s.icon}</div>
+                    <div>
+                      <div className="text-xl font-bold text-white">{s.value}</div>
+                      <div className="text-xs text-gray-500">{s.label}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              */}
+
+
+              {/* Region Cards */}
+              <div className="space-y-5">
+                {regions.map(region => {
+                  const regionData = mapData[region];
+                  const lidarLatest = regionData.lidar.find(v => v.isActive);
+                  const vectorLatest = regionData.vector.find(v => v.isActive);
+                  const isExpanded = expandedRegion === region;
+
+                  return (
+                    <div key={region} className="panel panel-glow rounded-lg overflow-hidden">
+                      {/* Region Header */}
+                      <div className="flex items-center justify-between px-5 py-4 cursor-pointer hover:bg-cyan-400/[0.02] transition-colors"
+                        onClick={() => setExpandedRegion(isExpanded ? null : region)}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-8 rounded-full bg-gradient-to-b from-cyan-400 to-orange-400"></div>
+                          <div>
+                            <div className="text-sm font-semibold text-white flex items-center gap-2">
+                              {region}
+                              <span className="text-xs px-2 py-0.5 rounded font-normal bg-cyan-400/10 text-cyan-400">
+                                {regionData.lidar.length + regionData.vector.length} 个版本
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-4">
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                                点云: <span className="text-cyan-400 font-medium">{lidarLatest ? lidarLatest.version : '-'}</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-orange-400"></span>
+                                矢量: <span className="text-orange-400 font-medium">{vectorLatest ? vectorLatest.version : '-'}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button onClick={(e) => { e.stopPropagation(); openUploadModal(null); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs border border-[#1a3350] text-gray-400 hover:border-cyan-400/40 hover:text-cyan-400 transition-all">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                            上传
+                          </button>
+                          <svg className={"w-5 h-5 text-gray-400 transition-transform " + (isExpanded ? 'rotate-180' : '')} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="border-t border-[#1a3350] p-4">
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* 点云地图 */}
+                            <div className="bg-[#0a1220] rounded-lg border border-cyan-400/20 overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a3350]">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded bg-cyan-400/20 flex items-center justify-center">
+                                    <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-cyan-400">点云地图</span>
+                                  <span className="text-xs text-gray-500">({regionData.lidar.length}个版本)</span>
+                                </div>
+                                <button onClick={() => openUploadModal('lidar')}
+                                  className="text-xs text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-1">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                  上传
+                                </button>
+                              </div>
+                              <div className="p-3 space-y-2">
+                                {regionData.lidar.length > 0 ? (
+                                  <>
+                                    {regionData.lidar.slice(0, 3).map(v => (
+                                      <div key={v.id} className="bg-[#060b18] rounded-lg p-3 hover:bg-cyan-400/5 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className={"text-xs px-2 py-0.5 rounded-full " + (v.isActive ? 'bg-cyan-400/20 text-cyan-400' : 'bg-[#1a3350] text-gray-500')}>
+                                              {v.isActive ? '当前' : '历史'}
+                                            </span>
+                                            <span className="text-xs font-mono text-cyan-400">{v.version}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeployOpen(v); }} className="flex items-center gap-1 text-xs text-purple-400 hover:text-white px-2 py-1 rounded border border-purple-400/30 hover:bg-purple-400/10 transition-all" title="下发/重新下发到车辆">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                              {deployments[v.id]?.length ? `已下发 ${deployments[v.id].length}` : '下发'}
+                                            </button>
+                                            <button onClick={() => setSelectedItem(v)} className="flex items-center gap-1 text-xs text-cyan-400 hover:text-white px-2 py-1 rounded border border-cyan-400/30 hover:bg-cyan-400/10 transition-all">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                              预览
+                                            </button>
+                                            <button onClick={() => handleDownload(v)} className="flex items-center gap-1 text-xs text-cyan-400 hover:text-white px-2 py-1 rounded border border-cyan-400/30 hover:bg-cyan-400/10 transition-all" title="下载">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                            </button>
+                                            {!v.isActive && (
+                                              <button onClick={() => handleSetActive(v)} className="text-gray-500 hover:text-green-400 transition-colors" title="设为当前">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {v.desc && <div className="text-xs text-gray-400 mb-2 truncate">{v.desc}</div>}
+                                        {deployments[v.id]?.length > 0 && (
+                                          <div className="flex items-center gap-1.5 text-xs mb-2">
+                                            <svg className="w-3 h-3 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            <span className="text-purple-400/70">已下发至:</span>
+                                            {deployments[v.id].map((plate, i) => (
+                                              <span key={plate} className="text-purple-300/80 font-medium">{plate}{i < deployments[v.id].length - 1 ? ',' : ''}</span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {v.uploadTime}
+                                          </span>
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                            {v.uploader}
+                                          </span>
+                                          <span>{v.fileSize}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {regionData.lidar.length > 3 && (
+                                      <div className="text-center text-xs text-gray-500 pt-1">
+                                        还有 {regionData.lidar.length - 3} 个历史版本
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="text-center text-xs text-gray-500 py-4">
+                                    暂无点云地图
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* 矢量地图 */}
+                            <div className="bg-[#0a1220] rounded-lg border border-orange-400/20 overflow-hidden">
+                              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a3350]">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-6 h-6 rounded bg-orange-400/20 flex items-center justify-center">
+                                    <svg className="w-3.5 h-3.5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7" /></svg>
+                                  </div>
+                                  <span className="text-sm font-medium text-orange-400">矢量地图</span>
+                                  <span className="text-xs text-gray-500">({regionData.vector.length}个版本)</span>
+                                </div>
+                                <button onClick={() => openUploadModal('vector')}
+                                  className="text-xs text-gray-400 hover:text-orange-400 transition-colors flex items-center gap-1">
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                  上传
+                                </button>
+                              </div>
+                              <div className="p-3 space-y-2">
+                                {regionData.vector.length > 0 ? (
+                                  <>
+                                    {regionData.vector.slice(0, 3).map(v => (
+                                      <div key={v.id} className="bg-[#060b18] rounded-lg p-3 hover:bg-orange-400/5 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div className="flex items-center gap-2">
+                                            <span className={"text-xs px-2 py-0.5 rounded-full " + (v.isActive ? 'bg-orange-400/20 text-orange-400' : 'bg-[#1a3350] text-gray-500')}>
+                                              {v.isActive ? '当前' : '历史'}
+                                            </span>
+                                            <span className="text-xs font-mono text-orange-400">{v.version}</span>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <button onClick={() => setSelectedItem(v)} className="flex items-center gap-1 text-xs text-orange-400 hover:text-white px-2 py-1 rounded border border-orange-400/30 hover:bg-orange-400/10 transition-all">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                              预览
+                                            </button>
+                                            <button onClick={() => handleDownload(v)} className="flex items-center gap-1 text-xs text-orange-400 hover:text-white px-2 py-1 rounded border border-orange-400/30 hover:bg-orange-400/10 transition-all" title="下载">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                            </button>
+                                            <button onClick={() => { setServiceUrlTarget(v); setShowServiceUrlModal(true); }} className={"flex items-center gap-1 text-xs px-2 py-1 rounded border transition-all " + (mapServiceUrls[v.id] ? 'text-amber-400 border-amber-400/40 hover:bg-amber-400/10' : 'text-gray-400 border-[#1a3350] hover:border-amber-400/30 hover:text-amber-400')} title="设置地图服务地址">
+                                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                            </button>
+                                            {!v.isActive && (
+                                              <button onClick={() => handleSetActive(v)} className="text-gray-500 hover:text-green-400 transition-colors" title="设为当前">
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                              </button>
+                                            )}
+                                          </div>
+                                        </div>
+                                        {v.desc && <div className="text-xs text-gray-400 mb-2 truncate">{v.desc}</div>}
+                                        {mapServiceUrls[v.id] && (
+                                          <div className="flex items-center gap-1.5 text-xs mb-2">
+                                            <svg className="w-3 h-3 text-orange-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                            <span className="text-orange-400/70">服务地址:</span>
+                                            <span className="text-orange-300/80 truncate max-w-[200px]">{mapServiceUrls[v.id]}</span>
+                                          </div>
+                                        )}
+                                        {deployments[v.id]?.length > 0 && (
+                                          <div className="flex items-center gap-1.5 text-xs mb-2">
+                                            <svg className="w-3 h-3 text-purple-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            <span className="text-purple-400/70">已下发至:</span>
+                                            {deployments[v.id].map((plate, i) => (
+                                              <span key={plate} className="text-purple-300/80 font-medium">{plate}{i < deployments[v.id].length - 1 ? ',' : ''}</span>
+                                            ))}
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            {v.uploadTime}
+                                          </span>
+                                          <span className="flex items-center gap-1">
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                            {v.uploader}
+                                          </span>
+                                          <span>{v.fileSize}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    {regionData.vector.length > 3 && (
+                                      <div className="text-center text-xs text-gray-500 pt-1">
+                                        还有 {regionData.vector.length - 3} 个历史版本
+                                      </div>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="text-center text-xs text-gray-500 py-4">
+                                    暂无矢量地图
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {regions.length === 0 && (
+                  <div className="panel panel-glow rounded-lg p-20 text-center">
+                    <div className="text-4xl mb-4">🗺️</div>
+                    <div className="text-gray-400 mb-2">暂无地图数据</div>
+                    <div className="text-gray-600 text-xs mb-4">上传第一个地图版本开始管理</div>
+                    <button onClick={() => openUploadModal(null)} className="px-5 py-2 rounded-lg text-white text-sm font-medium btn-primary">上传地图</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {showUpload && (
+            <UploadModal
+              mapType={uploadMapType}
+              regionOptions={regions}
+              onClose={() => { setShowUpload(false); setUploadMapType(null); }}
+              onUpload={handleUpload}
+            />
+          )}
+          {selectedItem && (
+            <DetailModal item={selectedItem} onClose={() => setSelectedItem(null)} />
+          )}
+          {showDeployModal && deployTarget && (
+            <VehicleDeployModal
+              title="下发地图到车辆"
+              subtitle={`${deployTarget.item.regionName} · ${deployTarget.item.type === 'lidar' ? '点云' : '矢量'} v${deployTarget.item.version}`}
+              preSelected={deployments[deployTarget.item.id] || []}
+              onClose={() => { setShowDeployModal(false); setDeployTarget(null); }}
+              onConfirm={handleDeployConfirm}
+            />
+          )}
+          {showServiceUrlModal && serviceUrlTarget && (
+            <MapServiceUrlEditModal
+              item={serviceUrlTarget}
+              currentUrl={mapServiceUrls[serviceUrlTarget.id] || ''}
+              onClose={() => { setShowServiceUrlModal(false); setServiceUrlTarget(null); }}
+              onConfirm={handleServiceUrlConfirm}
+            />
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+
+</html>
