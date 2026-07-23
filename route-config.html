@@ -294,11 +294,11 @@
           ctx.translate(wp.x, wp.y);
           ctx.rotate(hAngle);
 
-          // Line from origin along +X axis
+          // Line from circle edge along +X axis
           ctx.strokeStyle = arrowColor;
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
+          ctx.moveTo(WP_RADIUS + 2, 0);
           ctx.lineTo(arrowLen, 0);
           ctx.stroke();
 
@@ -310,6 +310,9 @@
           ctx.closePath();
           ctx.fillStyle = arrowColor;
           ctx.fill();
+          ctx.strokeStyle = arrowColor;
+          ctx.lineWidth = 4;
+          ctx.stroke();
 
           ctx.restore();
         });
@@ -549,11 +552,11 @@
           ctx.translate(wp.x, wp.y);
           ctx.rotate(hAngle);
 
-          // Line from origin along +X axis
+          // Line from circle edge along +X axis
           ctx.strokeStyle = arrowColor;
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
+          ctx.moveTo(WP_RADIUS + 2, 0);
           ctx.lineTo(arrowLen, 0);
           ctx.stroke();
 
@@ -565,6 +568,9 @@
           ctx.closePath();
           ctx.fillStyle = arrowColor;
           ctx.fill();
+          ctx.strokeStyle = arrowColor;
+          ctx.lineWidth = 4;
+          ctx.stroke();
 
           ctx.restore();
         });
@@ -909,7 +915,7 @@
           ctx.strokeStyle = '#00D4FF';
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(0, 0);
+          ctx.moveTo(16, 0);
           ctx.lineTo(arrowLen, 0);
           ctx.stroke();
           ctx.beginPath();
@@ -919,6 +925,9 @@
           ctx.closePath();
           ctx.fillStyle = '#00D4FF';
           ctx.fill();
+          ctx.strokeStyle = '#00D4FF';
+          ctx.lineWidth = 4;
+          ctx.stroke();
           ctx.restore();
         }
 
@@ -1173,7 +1182,7 @@
         ctx.strokeStyle = '#00D4FF';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        ctx.moveTo(0, 0);
+        ctx.moveTo(20, 0);
         ctx.lineTo(arrowLen, 0);
         ctx.stroke();
         ctx.beginPath();
@@ -1183,6 +1192,9 @@
         ctx.closePath();
         ctx.fillStyle = '#00D4FF';
         ctx.fill();
+        ctx.strokeStyle = '#00D4FF';
+        ctx.lineWidth = 4;
+        ctx.stroke();
         ctx.restore();
 
         // Pulse ring animation
