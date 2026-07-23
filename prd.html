@@ -801,10 +801,10 @@
     <h4>3.3.2 功能清单</h4>
     <h5>(1) 地图监控（中央主区域）</h5>
     <ul>
-      <li><strong>地图引擎</strong>：OpenLayers，支持 GeoTIFF 瓦片图层</li>
+      <li><strong>地图底图</strong>：高德卫星图 + 地图管理页面上传的每个地图的最新版本矢量地图url，地图视野需要将规划路线和途经点都显示出俩</li>
       <li><strong>规划路径</strong>：蓝色虚线显示预设路线</li>
       <li><strong>实际轨迹</strong>：金色实线显示已行驶路径</li>
-      <li><strong>途经点</strong>：编号圆点标记（A、B、C...）</li>
+      <li><strong>途经点</strong>：该路线的途经点位置和航向角</li>
       <li><strong>车辆标记</strong>：绿色三角箭头 + 光晕效果 + 车牌号标签<ul>
           <li>箭头方向随车辆行驶角度实时旋转</li>
         </ul>
@@ -908,26 +908,27 @@
       <li><strong>搜索</strong>：按路线名称搜索</li>
       <li><strong>新建路线按钮</strong></li>
       <li><strong>路线列表</strong>：卡片式展示<ul>
-          <li>路线名称、里程、途经点数量</li>
+          <li>路线名称、途经点数量</li>
           <li>操作：查看、编辑、删除（二次确认）</li>
         </ul>
       </li>
       <li><strong>路线编辑弹窗</strong>：<ul>
           <li>路线名称输入</li>
           <li>Canvas 地图区域：<ul>
-              <li>&quot;添加途经点&quot;模式：点击地图添加</li>
+              <li>&quot;地图底图&quot;高德卫星图 + 地图管理页面上传的每个地图的最新版本矢量地图url</li>
+              <li>&quot;添加途经点&quot;模式：点击地图添加，自动命名为途经点1、途经点2...</li>
+              <li>&quot;设置航向角&quot;：默认朝上，拖动滑块进行航向角的调整</li>
               <li>&quot;选择模式&quot;：拖拽调整途经点</li>
               <li>&quot;清空&quot;：清除所有途经点</li>
             </ul>
           </li>
           <li>途经点列表：<ul>
-              <li>编号标识（起点绿色、终点红色、中间点青色）</li>
+              <li>编号标识（途经点1、途经点2、途经点3...）</li>
               <li>标签编辑（双击修改名称）</li>
               <li>坐标显示</li>
               <li>删除单个途经点</li>
             </ul>
           </li>
-          <li>自动计算里程</li>
         </ul>
       </li>
       <li><strong>路线查看弹窗</strong>：只读查看路线详情和途经点</li>

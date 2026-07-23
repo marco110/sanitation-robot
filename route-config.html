@@ -162,32 +162,32 @@
     // ─── Default Data ────────────────────────────────────────────────────────────
 
     const DEFAULT_ROUTES = [
-      { id: 'r1', label: '路线 A - 园区主干道', dist: '2.4 km', time: '约 60 分钟', waypoints: [
+      { id: 'r1', label: '路线 A - 园区主干道',  time: '约 60 分钟', waypoints: [
         { x: 100, y: 100, label: '起点', heading: 90 },
         { x: 500, y: 200, label: '终点', heading: 270 }
       ]},
-      { id: 'r2', label: '路线 B - 商业街区', dist: '3.1 km', time: '约 78 分钟', waypoints: [
+      { id: 'r2', label: '路线 B - 商业街区',  time: '约 78 分钟', waypoints: [
         { x: 120, y: 80, label: '起点', heading: 135 },
         { x: 300, y: 120, label: '途经点 2', heading: 45 },
         { x: 450, y: 180, label: '终点', heading: 315 }
       ]},
-      { id: 'r3', label: '路线 C - 居民小区', dist: '1.8 km', time: '约 45 分钟', waypoints: [
+      { id: 'r3', label: '路线 C - 居民小区',  time: '约 45 分钟', waypoints: [
         { x: 80, y: 120, label: '起点', heading: 45 },
         { x: 200, y: 200, label: '途经点 2', heading: 180 },
         { x: 350, y: 150, label: '终点', heading: 0 }
       ]},
-      { id: 'r4', label: '路线 D - 公园绿道', dist: '2.5 km', time: '约 55 分钟', waypoints: [
+      { id: 'r4', label: '路线 D - 公园绿道',  time: '约 55 分钟', waypoints: [
         { x: 80, y: 120, label: '办公楼门口垃圾桶', heading: 90 },
         { x: 200, y: 200, label: '途经点 2', heading: 270 }
       ]}
     ];
 
     const DEFAULT_PARKING_SPOTS = [
-      { id: 'p1', name: '停车场 A区', location: '园区东北角', capacity: 5, occupied: 3, status: 'normal', lat: 31.2304, lng: 121.4737, desc: '配备充电桩，可容纳5辆车' },
-      { id: 'p2', name: '停车场 B区', location: '园区西南角', capacity: 8, occupied: 6, status: 'normal', lat: 31.2284, lng: 121.4717, desc: '大型停车场，适合大型车辆停放' },
-      { id: 'p3', name: '充电站 1号', location: '园区中心', capacity: 4, occupied: 4, status: 'full', lat: 31.2294, lng: 121.4727, desc: '快速充电站，支持快充模式' },
-      { id: 'p4', name: '维修区', location: '园区西北角', capacity: 3, occupied: 1, status: 'normal', lat: 31.2314, lng: 121.4707, desc: '提供日常维护和紧急维修服务' },
-      { id: 'p5', name: '停车场 C区', location: '园区东南角', capacity: 6, occupied: 0, status: 'idle', lat: 31.2274, lng: 121.4747, desc: '备用停车区，24小时开放' }
+      { id: 'p1', name: '停车场 A区', location: '园区东北角', capacity: 5, occupied: 3, status: 'normal', lat: 31.2304, lng: 121.4737, heading: 0, desc: '配备充电桩，可容纳5辆车' },
+      { id: 'p2', name: '停车场 B区', location: '园区西南角', capacity: 8, occupied: 6, status: 'normal', lat: 31.2284, lng: 121.4717, heading: 90, desc: '大型停车场，适合大型车辆停放' },
+      { id: 'p3', name: '充电站 1号', location: '园区中心', capacity: 4, occupied: 4, status: 'full', lat: 31.2294, lng: 121.4727, heading: 180, desc: '快速充电站，支持快充模式' },
+      { id: 'p4', name: '维修区', location: '园区西北角', capacity: 3, occupied: 1, status: 'normal', lat: 31.2314, lng: 121.4707, heading: 270, desc: '提供日常维护和紧急维修服务' },
+      { id: 'p5', name: '停车场 C区', location: '园区东南角', capacity: 6, occupied: 0, status: 'idle', lat: 31.2274, lng: 121.4747, heading: 45, desc: '备用停车区，24小时开放' }
     ];
 
     // ─── Modal Component ────────────────────────────────────────────────────────
@@ -289,32 +289,29 @@
           const hAngle = (heading - 90) * Math.PI / 180;
           const arrowLen = 45;
           const arrowColor = i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF';
-          const tipX = wp.x + Math.cos(hAngle) * arrowLen;
-          const tipY = wp.y + Math.sin(hAngle) * arrowLen;
 
+          ctx.save();
+          ctx.translate(wp.x, wp.y);
+          ctx.rotate(hAngle);
+
+          // Line from origin along +X axis
           ctx.strokeStyle = arrowColor;
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(wp.x, wp.y);
-          ctx.lineTo(tipX, tipY);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(arrowLen, 0);
           ctx.stroke();
 
-          // Arrowhead - solid triangle pointing forward
-          const headLen = 14;
-          const wingW = 7;
-          const backX = tipX - Math.cos(hAngle) * headLen;
-          const backY = tipY - Math.sin(hAngle) * headLen;
-          const leftX = backX - Math.sin(hAngle) * wingW;
-          const leftY = backY + Math.cos(hAngle) * wingW;
-          const rightX = backX + Math.sin(hAngle) * wingW;
-          const rightY = backY - Math.cos(hAngle) * wingW;
+          // Arrowhead triangle at the tip, pointing +X
           ctx.beginPath();
-          ctx.moveTo(tipX, tipY);
-          ctx.lineTo(leftX, leftY);
-          ctx.lineTo(rightX, rightY);
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(arrowLen - 14, -7);
+          ctx.lineTo(arrowLen - 14, 7);
           ctx.closePath();
           ctx.fillStyle = arrowColor;
           ctx.fill();
+
+          ctx.restore();
         });
 
         // Empty state
@@ -357,10 +354,6 @@
               <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>路线名称</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{route.name || route.label}</div>
-              </div>
-              <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>总距离约</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#00D4FF', fontFamily: 'Inter, sans-serif' }}>{route.dist}</div>
               </div>
               <div style={{ background: '#080f1e', padding: '12px', borderRadius: 10, border: '1px solid #1a3350' }}>
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>途经点数</div>
@@ -551,32 +544,29 @@
           const hAngle = (heading - 90) * Math.PI / 180;
           const arrowLen = 45;
           const arrowColor = i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF';
-          const tipX = wp.x + Math.cos(hAngle) * arrowLen;
-          const tipY = wp.y + Math.sin(hAngle) * arrowLen;
 
+          ctx.save();
+          ctx.translate(wp.x, wp.y);
+          ctx.rotate(hAngle);
+
+          // Line from origin along +X axis
           ctx.strokeStyle = arrowColor;
           ctx.lineWidth = 4;
           ctx.beginPath();
-          ctx.moveTo(wp.x, wp.y);
-          ctx.lineTo(tipX, tipY);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(arrowLen, 0);
           ctx.stroke();
 
-          // Arrowhead - solid triangle pointing forward
-          const headLen = 14;
-          const wingW = 7;
-          const backX = tipX - Math.cos(hAngle) * headLen;
-          const backY = tipY - Math.sin(hAngle) * headLen;
-          const leftX = backX - Math.sin(hAngle) * wingW;
-          const leftY = backY + Math.cos(hAngle) * wingW;
-          const rightX = backX + Math.sin(hAngle) * wingW;
-          const rightY = backY - Math.cos(hAngle) * wingW;
+          // Arrowhead triangle at the tip, pointing +X
           ctx.beginPath();
-          ctx.moveTo(tipX, tipY);
-          ctx.lineTo(leftX, leftY);
-          ctx.lineTo(rightX, rightY);
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(arrowLen - 14, -7);
+          ctx.lineTo(arrowLen - 14, 7);
           ctx.closePath();
           ctx.fillStyle = arrowColor;
           ctx.fill();
+
+          ctx.restore();
         });
 
         // Empty state
@@ -647,19 +637,12 @@
         if (!routeName.trim()) { alert('请输入路线名称'); return; }
         if (waypoints.length < 2) { alert('请至少添加 2 个途经点'); return; }
         const scale = 30;
-        let dist = 0;
-        for (let i = 1; i < waypoints.length; i++) {
-          dist += Math.hypot(waypoints[i].x - waypoints[i - 1].x, waypoints[i].y - waypoints[i - 1].y);
-        }
-        const distKm = (dist * scale / 1000).toFixed(1);
-        const timeMin = Math.round((dist * scale / 1000) / 5 * 60);
+        
         const letter = initialRoute?.id ? initialRoute.id.replace('r', '') : String.fromCharCode(65 + Math.floor(Math.random() * 26));
         const newRoute = {
           id: initialRoute?.id || ('r_' + Date.now()),
           label: `路线 ${letter} - ${routeName}`,
           name: routeName,
-          dist: `约${distKm} km`,
-          time: `约 ${timeMin} 分钟`,
           waypoints,
         };
         onSave(newRoute);
@@ -844,6 +827,7 @@
         lat: initialSpot?.lat || null, 
         lng: initialSpot?.lng || null 
       });
+      const [heading, setHeading] = useState(initialSpot?.heading != null ? initialSpot.heading : 0);
       const [selectingOnMap, setSelectingOnMap] = useState(false);
 
       const CANVAS_W = 580;
@@ -915,6 +899,27 @@
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText('P', markerX, markerY);
+
+          // Heading arrow
+          const hAngle = (heading - 90) * Math.PI / 180;
+          const arrowLen = 45;
+          ctx.save();
+          ctx.translate(markerX, markerY);
+          ctx.rotate(hAngle);
+          ctx.strokeStyle = '#00D4FF';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(arrowLen, 0);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(arrowLen, 0);
+          ctx.lineTo(arrowLen - 14, -7);
+          ctx.lineTo(arrowLen - 14, 7);
+          ctx.closePath();
+          ctx.fillStyle = '#00D4FF';
+          ctx.fill();
+          ctx.restore();
         }
 
         // Hint text
@@ -925,7 +930,7 @@
           ctx.textBaseline = 'middle';
           ctx.fillText('点击地图选择位置', CANVAS_W / 2, CANVAS_H / 2);
         }
-      }, [coords]);
+      }, [coords, heading]);
 
       useEffect(() => {
         draw();
@@ -955,6 +960,7 @@
           id: initialSpot?.id || ('p_' + Date.now()),
           name,
           location,
+          heading,
           ...coords,
         };
         onSave(newSpot);
@@ -1050,6 +1056,26 @@
               />
             </div>
 
+            <div>
+              <label style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6, display: 'block', fontFamily: 'Noto Sans SC, sans-serif' }}>航向角</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#080f1e', padding: '10px 14px', borderRadius: 10, border: '1px solid #1a3350' }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={heading}
+                  onChange={e => setHeading(parseInt(e.target.value, 10))}
+                  style={{
+                    flex: 1, height: 4, accentColor: '#00D4FF',
+                    background: '#1a3350', borderRadius: 2, outline: 'none', cursor: 'pointer'
+                  }}
+                />
+                <span style={{ fontSize: 13, color: '#00D4FF', fontFamily: 'Inter, sans-serif', minWidth: 40, textAlign: 'right', fontWeight: 500 }}>
+                  {heading}°
+                </span>
+              </div>
+            </div>
+
           </div>
 
           <div style={{ padding: '12px 20px', borderTop: '1px solid #1a3350', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
@@ -1138,6 +1164,27 @@
         ctx.textBaseline = 'middle';
         ctx.fillText('P', markerX, markerY);
 
+        // Heading arrow
+        const hAngle = ((spot.heading != null ? spot.heading : 0) - 90) * Math.PI / 180;
+        const arrowLen = 45;
+        ctx.save();
+        ctx.translate(markerX, markerY);
+        ctx.rotate(hAngle);
+        ctx.strokeStyle = '#00D4FF';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(arrowLen, 0);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(arrowLen, 0);
+        ctx.lineTo(arrowLen - 14, -7);
+        ctx.lineTo(arrowLen - 14, 7);
+        ctx.closePath();
+        ctx.fillStyle = '#00D4FF';
+        ctx.fill();
+        ctx.restore();
+
         // Pulse ring animation
         ctx.beginPath();
         ctx.arc(markerX, markerY, 25, 0, Math.PI * 2);
@@ -1188,7 +1235,7 @@
               <div style={{ background: '#080f1e', padding: '14px', borderRadius: 10, border: '1px solid #1a3350' }}>
                 <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontFamily: 'Noto Sans SC, sans-serif' }}>坐标位置</div>
                 <div style={{ fontSize: 13, color: '#e2e8f0', fontFamily: 'monospace' }}>
-                  纬度: {spot.lat?.toFixed(6) || '--'} | 经度: {spot.lng?.toFixed(6) || '--'}
+                  纬度: {spot.lat?.toFixed(6) || '--'} | 经度: {spot.lng?.toFixed(6) || '--'} | 航向: {spot.heading != null ? spot.heading : 0}°
                 </div>
               </div>
             )}
@@ -1458,9 +1505,6 @@
                             </div>
                             <div>
                               <div style={{ fontSize: 14, fontWeight: 600, color: '#f1f5f9', fontFamily: 'Noto Sans SC, sans-serif' }}>{route.name || route.label}</div>
-                              <div style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif', marginTop: 2 }}>
-                                约{route.dist}
-                              </div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 4 }}>

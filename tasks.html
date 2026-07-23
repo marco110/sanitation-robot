@@ -752,7 +752,7 @@
                             onChange={e => onChange({ ...data, route: e.target.value })}>
                             <option value="">请选择作业路线</option>
                             {routes.map(r => (
-                                <option key={r.id} value={r.id}>{r.label}（约{r.dist}）</option>
+                                <option key={r.id} value={r.id}>{r.label}</option>
                             ))}
                         </select>
 
