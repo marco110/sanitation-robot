@@ -527,8 +527,8 @@
     }
 
     // ================== 上传弹窗（统一版本管理）====================
-    function UploadModal({ regionOptions, onClose, onUpload, initialRegion, mapType }) {
-      const [regionName, setRegionName] = useState(initialRegion || '');
+    function UploadModal({ regionOptions, onClose, onUpload, initialRegion, mapType, uploadModalMode, currentUploadRegion }) {
+      const [regionName, setRegionName] = useState(currentUploadRegion || '');
       const [newRegionName, setNewRegionName] = useState('');
       const [version, setVersion] = useState('');
       const [desc, setDesc] = useState('');
@@ -606,7 +606,7 @@
                   <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
                 </div>
                 <div>
-                  <h2 className="text-base font-semibold text-white">上传地图</h2>
+                  <h2 className="text-base font-semibold text-white">{uploadModalMode === 'upload' ? '上传地图' : '新建地图'}</h2>
                   <p className="text-xs text-gray-500 mt-0.5">点云和矢量地图共用同一版本信息</p>
                 </div>
               </div>
@@ -619,17 +619,10 @@
               {/* 地区选择 */}
               <div>
                 <label className="block text-sm text-gray-400 mb-1.5">地区名称 <span className="text-red-400">*</span></label>
-                <select value={regionName} onChange={e => setRegionName(e.target.value)}
-                  className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-400/60">
-                  <option value="">请选择地区</option>
-                  {regionOptions.map(r => <option key={r} value={r}>{r}</option>)}
-                  <option value="__new__">+ 新增地区</option>
-                </select>
-                {regionName === '__new__' && (
-                  <input type="text" value={newRegionName} onChange={e => setNewRegionName(e.target.value)}
-                    placeholder="输入新地区名称" autoFocus
-                    className="w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-cyan-400/60 mt-2" />
-                )}
+                <input type="text" value={regionName} onChange={e => setRegionName(e.target.value)}
+                  placeholder="请输入新地图名称"
+                  disabled={uploadModalMode === 'upload'}
+                  className={"w-full bg-[#0a1220] border border-[#1a3350] rounded-lg px-4 py-2.5 text-sm placeholder-gray-600 focus:outline-none focus:border-cyan-400/60 " + (uploadModalMode === 'upload' ? 'text-gray-400 cursor-not-allowed' : 'text-white')} />
               </div>
 
               {/* 版本信息 */}
@@ -890,6 +883,8 @@
       const [selectedItem, setSelectedItem] = useState(null);
       const [expandedRegion, setExpandedRegion] = useState(null);
       const [uploadMapType, setUploadMapType] = useState(null); // 'lidar', 'vector', or null
+      const [uploadModalMode, setUploadModalMode] = useState('new'); // 'new' | 'upload'
+      const [uploadModalRegion, setUploadModalRegion] = useState(''); // region name for upload mode
       const [searchMapName, setSearchMapName] = useState(''); // 地图名称搜索 - 实时输入
       const [appliedSearch, setAppliedSearch] = useState(''); // 已应用的搜索词
       // 下发管理
@@ -1067,8 +1062,10 @@
         });
       };
 
-      const openUploadModal = (mapType) => {
+      const openUploadModal = (mapType, mode = 'new', regionName = '') => {
         setUploadMapType(mapType);
+        setUploadModalMode(mode);
+        setUploadModalRegion(regionName);
         setShowUpload(true);
       };
 
@@ -1138,9 +1135,9 @@
               </div>
               <div className="flex items-center gap-4 text-sm">
                 <span className="text-gray-500 font-mono">{currentTime.toLocaleTimeString('en-GB')}</span>
-                <button onClick={() => openUploadModal(null)} className="px-4 py-1.5 rounded text-white text-xs font-medium btn-primary flex items-center gap-1.5">
+                <button onClick={() => openUploadModal(null, 'new')} className="px-4 py-1.5 rounded text-white text-xs font-medium btn-primary flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                  上传地图
+                  新建地图
                 </button>
               </div>
             </div>
@@ -1202,7 +1199,7 @@
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <button onClick={(e) => { e.stopPropagation(); openUploadModal(null); }}
+                          <button onClick={(e) => { e.stopPropagation(); openUploadModal(null, 'upload', region); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs border border-[#1a3350] text-gray-400 hover:border-cyan-400/40 hover:text-cyan-400 transition-all">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                             上传
@@ -1225,7 +1222,7 @@
                                   <span className="text-sm font-medium text-cyan-400">点云地图</span>
                                   <span className="text-xs text-gray-500">({regionData.lidar.length}个版本)</span>
                                 </div>
-                                <button onClick={() => openUploadModal('lidar')}
+                                <button onClick={() => openUploadModal('lidar', 'upload', region)}
                                   className="text-xs text-gray-400 hover:text-cyan-400 transition-colors flex items-center gap-1">
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                   上传
@@ -1309,7 +1306,7 @@
                                   <span className="text-sm font-medium text-orange-400">矢量地图</span>
                                   <span className="text-xs text-gray-500">({regionData.vector.length}个版本)</span>
                                 </div>
-                                <button onClick={() => openUploadModal('vector')}
+                                <button onClick={() => openUploadModal('vector', 'upload', region)}
                                   className="text-xs text-gray-400 hover:text-orange-400 transition-colors flex items-center gap-1">
                                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                                   上传
@@ -1400,7 +1397,7 @@
                     <div className="text-4xl mb-4">🗺️</div>
                     <div className="text-gray-400 mb-2">暂无地图数据</div>
                     <div className="text-gray-600 text-xs mb-4">上传第一个地图版本开始管理</div>
-                    <button onClick={() => openUploadModal(null)} className="px-5 py-2 rounded-lg text-white text-sm font-medium btn-primary">上传地图</button>
+                    <button onClick={() => openUploadModal(null, 'new')} className="px-5 py-2 rounded-lg text-white text-sm font-medium btn-primary">上传地图</button>
                   </div>
                 )}
               </div>
@@ -1411,7 +1408,9 @@
             <UploadModal
               mapType={uploadMapType}
               regionOptions={regions}
-              onClose={() => { setShowUpload(false); setUploadMapType(null); }}
+              uploadModalMode={uploadModalMode}
+              currentUploadRegion={uploadModalRegion}
+              onClose={() => { setShowUpload(false); setUploadMapType(null); setUploadModalMode('new'); setUploadModalRegion(''); }}
               onUpload={handleUpload}
             />
           )}
