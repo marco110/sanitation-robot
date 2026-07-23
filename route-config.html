@@ -163,21 +163,23 @@
 
     const DEFAULT_ROUTES = [
       { id: 'r1', label: '路线 A - 园区主干道', dist: '2.4 km', time: '约 60 分钟', waypoints: [
-        { x: 100, y: 100, label: '起点' },
-        { x: 500, y: 200, label: '终点' }
+        { x: 100, y: 100, label: '起点', heading: 90 },
+        { x: 500, y: 200, label: '终点', heading: 270 }
       ]},
       { id: 'r2', label: '路线 B - 商业街区', dist: '3.1 km', time: '约 78 分钟', waypoints: [
-        { x: 120, y: 80, label: '起点' },
-        { x: 300, y: 120, label: '途经点 2' },
-        { x: 450, y: 180, label: '终点' }
+        { x: 120, y: 80, label: '起点', heading: 135 },
+        { x: 300, y: 120, label: '途经点 2', heading: 45 },
+        { x: 450, y: 180, label: '终点', heading: 315 }
       ]},
       { id: 'r3', label: '路线 C - 居民小区', dist: '1.8 km', time: '约 45 分钟', waypoints: [
-        { x: 80, y: 120, label: '起点' },
-        { x: 200, y: 200, label: '途经点 2' },
-        { x: 350, y: 150, label: '终点' }
+        { x: 80, y: 120, label: '起点', heading: 45 },
+        { x: 200, y: 200, label: '途经点 2', heading: 180 },
+        { x: 350, y: 150, label: '终点', heading: 0 }
       ]},
-      { id: 'r4', label: '路线 D - 公园绿道', dist: '2.5 km', time: '约 55 分钟', waypoints: [{ x: 80, y: 120, label: '办公楼门口垃圾桶' },
-          { x: 200, y: 200, label: '途经点 2' }]}
+      { id: 'r4', label: '路线 D - 公园绿道', dist: '2.5 km', time: '约 55 分钟', waypoints: [
+        { x: 80, y: 120, label: '办公楼门口垃圾桶', heading: 90 },
+        { x: 200, y: 200, label: '途经点 2', heading: 270 }
+      ]}
     ];
 
     const DEFAULT_PARKING_SPOTS = [
@@ -243,42 +245,6 @@
         ctx.fillText('B', 278, 8);
         ctx.fillText('C', 548, 8);
 
-        // Route path
-        if (route.waypoints.length >= 2) {
-          // Animated dashed line
-          ctx.setLineDash([8, 4]);
-          ctx.beginPath();
-          ctx.moveTo(route.waypoints[0].x, route.waypoints[0].y);
-          for (let i = 1; i < route.waypoints.length; i++) {
-            ctx.lineTo(route.waypoints[i].x, route.waypoints[i].y);
-          }
-          ctx.strokeStyle = 'rgba(0,212,255,0.6)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-          ctx.setLineDash([]);
-
-          // Direction arrows
-          for (let i = 0; i < route.waypoints.length - 1; i++) {
-            const wp1 = route.waypoints[i];
-            const wp2 = route.waypoints[i + 1];
-            const midX = (wp1.x + wp2.x) / 2;
-            const midY = (wp1.y + wp2.y) / 2;
-            const angle = Math.atan2(wp2.y - wp1.y, wp2.x - wp1.x);
-            
-            ctx.save();
-            ctx.translate(midX, midY);
-            ctx.rotate(angle);
-            ctx.fillStyle = 'rgba(0,212,255,0.8)';
-            ctx.beginPath();
-            ctx.moveTo(8, 0);
-            ctx.lineTo(-4, -5);
-            ctx.lineTo(-4, 5);
-            ctx.closePath();
-            ctx.fill();
-            ctx.restore();
-          }
-        }
-
         // Waypoints
         route.waypoints.forEach((wp, i) => {
           // Glow
@@ -317,6 +283,38 @@
             ctx.textBaseline = 'bottom';
             ctx.fillText(wp.label, wp.x, wp.y - WP_RADIUS - 4);
           }
+
+          // Heading arrow
+          const heading = wp.heading != null ? wp.heading : 0;
+          const hAngle = (heading - 90) * Math.PI / 180;
+          const arrowLen = 45;
+          const arrowColor = i === 0 ? '#00FF88' : i === route.waypoints.length - 1 ? '#FF6B6B' : '#00D4FF';
+          const tipX = wp.x + Math.cos(hAngle) * arrowLen;
+          const tipY = wp.y + Math.sin(hAngle) * arrowLen;
+
+          ctx.strokeStyle = arrowColor;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(wp.x, wp.y);
+          ctx.lineTo(tipX, tipY);
+          ctx.stroke();
+
+          // Arrowhead - solid triangle pointing forward
+          const headLen = 14;
+          const wingW = 7;
+          const backX = tipX - Math.cos(hAngle) * headLen;
+          const backY = tipY - Math.sin(hAngle) * headLen;
+          const leftX = backX - Math.sin(hAngle) * wingW;
+          const leftY = backY + Math.cos(hAngle) * wingW;
+          const rightX = backX + Math.sin(hAngle) * wingW;
+          const rightY = backY - Math.cos(hAngle) * wingW;
+          ctx.beginPath();
+          ctx.moveTo(tipX, tipY);
+          ctx.lineTo(leftX, leftY);
+          ctx.lineTo(rightX, rightY);
+          ctx.closePath();
+          ctx.fillStyle = arrowColor;
+          ctx.fill();
         });
 
         // Empty state
@@ -417,7 +415,7 @@
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 12, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{wp.label}</div>
                         <div style={{ fontSize: 10, color: '#475569', fontFamily: 'monospace', marginTop: 2 }}>
-                          坐标: ({wp.x}, {wp.y})
+                          坐标: ({wp.x}, {wp.y}) | 航向: {wp.heading != null ? wp.heading : 0}°
                         </div>
                       </div>
                       <span style={{
@@ -452,6 +450,7 @@
         (initialRoute?.waypoints || []).map((wp, i) => ({
           ...wp,
           label: wp.label || `途经点 ${i + 1}`,
+          heading: wp.heading != null ? wp.heading : 0,
         }))
       );
       const [routeName, setRouteName] = useState(initialRoute?.name || initialRoute?.label?.replace(/路线 [A-Z] - /, '') || '');
@@ -498,18 +497,6 @@
         ctx.fillText('A', 8, 8);
         ctx.fillText('B', 288, 8);
         ctx.fillText('C', 568, 8);
-
-        // Route path
-        if (waypoints.length >= 2) {
-          ctx.beginPath();
-          ctx.moveTo(waypoints[0].x, waypoints[0].y);
-          for (let i = 1; i < waypoints.length; i++) {
-            ctx.lineTo(waypoints[i].x, waypoints[i].y);
-          }
-          ctx.strokeStyle = 'rgba(0,212,255,0.35)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
 
         // Waypoints
         waypoints.forEach((wp, i) => {
@@ -558,6 +545,38 @@
           ctx.strokeStyle = isDragging ? '#fff' : 'rgba(255,255,255,0.4)';
           ctx.lineWidth = isDragging ? 2 : 1.5;
           ctx.stroke();
+
+          // Heading arrow
+          const heading = wp.heading != null ? wp.heading : 0;
+          const hAngle = (heading - 90) * Math.PI / 180;
+          const arrowLen = 45;
+          const arrowColor = i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF';
+          const tipX = wp.x + Math.cos(hAngle) * arrowLen;
+          const tipY = wp.y + Math.sin(hAngle) * arrowLen;
+
+          ctx.strokeStyle = arrowColor;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(wp.x, wp.y);
+          ctx.lineTo(tipX, tipY);
+          ctx.stroke();
+
+          // Arrowhead - solid triangle pointing forward
+          const headLen = 14;
+          const wingW = 7;
+          const backX = tipX - Math.cos(hAngle) * headLen;
+          const backY = tipY - Math.sin(hAngle) * headLen;
+          const leftX = backX - Math.sin(hAngle) * wingW;
+          const leftY = backY + Math.cos(hAngle) * wingW;
+          const rightX = backX + Math.sin(hAngle) * wingW;
+          const rightY = backY - Math.cos(hAngle) * wingW;
+          ctx.beginPath();
+          ctx.moveTo(tipX, tipY);
+          ctx.lineTo(leftX, leftY);
+          ctx.lineTo(rightX, rightY);
+          ctx.closePath();
+          ctx.fillStyle = arrowColor;
+          ctx.fill();
         });
 
         // Empty state
@@ -604,7 +623,7 @@
           setActiveBtn('select');
         } else if (activeBtn === 'add') {
           const newLabel = `途经点 ${waypoints.length + 1}`;
-          const snapped = { x: snap(pos.x), y: snap(pos.y), label: newLabel };
+          const snapped = { x: snap(pos.x), y: snap(pos.y), label: newLabel, heading: 0 };
           setWaypoints(prev => [...prev, snapped]);
         }
       };
@@ -739,38 +758,64 @@
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {waypoints.map((wp, i) => (
                   <div key={i} style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
+                    display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 10px',
                     background: '#080f1e', borderRadius: 8, border: '1px solid #1a3350'
                   }}>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF',
-                      fontSize: 10, fontWeight: 700, color: '#060b18'
-                    }}>
-                      {i + 1}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: i === 0 ? '#00FF88' : i === waypoints.length - 1 ? '#FF6B6B' : '#00D4FF',
+                        fontSize: 10, fontWeight: 700, color: '#060b18'
+                      }}>
+                        {i + 1}
+                      </div>
+                      {editingIdx === i ? (
+                        <input
+                          autoFocus
+                          className="input-base"
+                          style={{ padding: '4px 8px', fontSize: 12 }}
+                          value={wp.label}
+                          onChange={e => setWaypoints(prev => prev.map((w, j) => j === i ? { ...w, label: e.target.value } : w))}
+                          onBlur={() => setEditingIdx(null)}
+                          onKeyDown={e => e.key === 'Enter' && setEditingIdx(null)}
+                        />
+                      ) : (
+                        <span style={{ flex: 1, fontSize: 12, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{wp.label}</span>
+                      )}
+                      <span style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
+                        ({wp.x}, {wp.y})
+                      </span>
+                      <button onClick={() => setEditingIdx(i)} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                        <IconEdit />
+                      </button>
+                      <button onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                        <IconTrash />
+                      </button>
                     </div>
-                    {editingIdx === i ? (
+                    {/* Heading angle slider */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 28 }}>
+                      <span style={{ fontSize: 11, color: '#64748b', fontFamily: 'Noto Sans SC, sans-serif', whiteSpace: 'nowrap', minWidth: 42 }}>航向角</span>
                       <input
-                        autoFocus
-                        className="input-base"
-                        style={{ padding: '4px 8px', fontSize: 12 }}
-                        value={wp.label}
-                        onChange={e => setWaypoints(prev => prev.map((w, j) => j === i ? { ...w, label: e.target.value } : w))}
-                        onBlur={() => setEditingIdx(null)}
-                        onKeyDown={e => e.key === 'Enter' && setEditingIdx(null)}
+                        type="range"
+                        min="0"
+                        max="360"
+                        value={wp.heading != null ? wp.heading : 0}
+                        onChange={e => {
+                          const val = parseInt(e.target.value, 10);
+                          setWaypoints(prev => prev.map((w, j) => j === i ? { ...w, heading: val } : w));
+                        }}
+                        style={{
+                          flex: 1, height: 4, accentColor: '#00D4FF',
+                          background: '#1a3350', borderRadius: 2, outline: 'none', cursor: 'pointer'
+                        }}
                       />
-                    ) : (
-                      <span style={{ flex: 1, fontSize: 12, color: '#e2e8f0', fontFamily: 'Noto Sans SC, sans-serif' }}>{wp.label}</span>
-                    )}
-                    <span style={{ fontSize: 11, color: '#475569', fontFamily: 'Inter, sans-serif' }}>
-                      ({wp.x}, {wp.y})
-                    </span>
-                    <button onClick={() => setEditingIdx(i)} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
-                      <IconEdit />
-                    </button>
-                    <button onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', padding: 2, display: 'flex' }}>
-                      <IconTrash />
-                    </button>
+                      <span style={{
+                        fontSize: 11, color: '#00D4FF', fontFamily: 'Inter, sans-serif',
+                        minWidth: 36, textAlign: 'right', fontWeight: 500
+                      }}>
+                        {wp.heading != null ? wp.heading : 0}°
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
