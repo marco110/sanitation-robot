@@ -433,7 +433,6 @@
           {/* 标题 */}
           <div className="flex items-center justify-between mb-0.5">
             <span className="text-xs text-cyan-400 font-medium">车辆仪表盘</span>
-            <span className="text-xs text-gray-400 font-medium">鲁B8888</span>
           </div>
 
           {/* 仪表盘图片 */}
@@ -758,6 +757,7 @@
       const vehicleMarkerRef = useRef(null);
       const pathLayerRef = useRef(null);
       const waypointLayerRef = useRef(null);
+      const plannedRouteLayerRef = useRef(null);
       const [mapLoaded, setMapLoaded] = useState(false);
       const [mapError, setMapError] = useState(null);
 
@@ -836,7 +836,7 @@
               color: 'transparent',
             }),
             stroke: new ol.style.Stroke({
-              color: '#FF0000',
+              color: '#ffffff',
               width: 3,
             }),
           }),
@@ -924,11 +924,14 @@
             index: index,
           });
 
+          const heading = wp.heading != null ? wp.heading : 0;
+          const wpColor = '#ff0000'; // wp.completed ? '#00FF88' : '#00D4FF';
+
           feature.setStyle(new ol.style.Style({
             image: new ol.style.Circle({
               radius: 10,
               fill: new ol.style.Fill({
-                color: wp.completed ? '#00FF88' : '#00D4FF',
+                color: wpColor,
               }),
               stroke: new ol.style.Stroke({
                 color: '#ffffff',
@@ -939,13 +942,44 @@
               text: wp.label,
               fill: new ol.style.Fill({ color: '#ffffff' }),
               font: 'bold 12px Arial',
-              offsetY: -20,
+              offsetY: 0,
               textAlign: 'center',
             }),
           }));
 
-          return feature;
-        });
+          // 航向角箭头线
+          const d = 0.00007;
+          const hRad = heading * Math.PI / 180;
+          const endLon = (wp.lon || wp.x) + d * Math.sin(hRad);
+          const endLat = (wp.lat || wp.y) + d * Math.cos(hRad);
+          const endCoords = ol.proj.fromLonLat([endLon, endLat]);
+
+          // 箭头线段
+          const arrowLineFeature = new ol.Feature({
+            geometry: new ol.geom.LineString([coords, endCoords]),
+          });
+          arrowLineFeature.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: wpColor,
+              width: 3,
+            }),
+          }));
+
+          // 箭头三角
+          const arrowheadFeature = new ol.Feature({
+            geometry: new ol.geom.Point(endCoords),
+          });
+          arrowheadFeature.setStyle(new ol.style.Style({
+            image: new ol.style.RegularShape({
+              points: 3,
+              radius: 9,
+              rotation: hRad,
+              fill: new ol.style.Fill({ color: wpColor }),
+            }),
+          }));
+
+          return [feature, arrowLineFeature, arrowheadFeature];
+        }).flat();
 
         const waypointSource = new ol.source.Vector({
           features: waypointFeatures,
@@ -989,6 +1023,45 @@
           });
 
           map.addLayer(pathLayerRef.current);
+        }
+
+        // 清除旧的规划路线图层
+        if (plannedRouteLayerRef.current) {
+          map.removeLayer(plannedRouteLayerRef.current);
+        }
+
+        // 创建规划路线（红色虚线，连接所有途经点，略微偏移避免被实际路径遮挡）
+        if (waypoints.length > 1) {
+          // 偏移量：经度偏移约 1.5m，纬度偏移约 1m
+          const offsetLon = -0.000025;
+          const offsetLat = 0.00001;
+          const plannedCoords = waypoints.map(wp =>
+            ol.proj.fromLonLat([(wp.lon || wp.x) + offsetLon, (wp.lat || wp.y) + offsetLat])
+          );
+          const plannedFeature = new ol.Feature({
+            geometry: new ol.geom.LineString(plannedCoords),
+          });
+
+          plannedFeature.setStyle(new ol.style.Style({
+            stroke: new ol.style.Stroke({
+              color: '#ef4444',
+              width: 3,
+              lineDash: [10, 8],
+              lineCap: 'round',
+              lineJoin: 'round',
+            }),
+          }));
+
+          const plannedSource = new ol.source.Vector({
+            features: [plannedFeature],
+          });
+
+          plannedRouteLayerRef.current = new ol.layer.Vector({
+            source: plannedSource,
+            zIndex: 3,
+          });
+
+          map.addLayer(plannedRouteLayerRef.current);
         }
 
         // 调整视图到包含所有点
@@ -1146,7 +1219,7 @@
           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur px-3 py-2 rounded-lg">
             <div className="flex items-center gap-4 text-xs">
               <span className="flex items-center gap-1.5">
-                <span className="w-8 h-0.5 border-t-2 border-dashed border-blue-500 inline-block rounded"></span>
+                <span className="w-8 h-0.5 inline-block rounded" style={{ background: 'repeating-linear-gradient(90deg, #ef4444 0px, #ef4444 6px, transparent 6px, transparent 12px)' }}></span>
                 规划路径
               </span>
               <span className="flex items-center gap-1.5">
@@ -1154,7 +1227,7 @@
                 实际轨迹
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-cyan-400 inline-flex items-center justify-center text-black font-bold text-xs">A</span>
+                <span className="w-4 h-4 rounded-full bg-red-500 inline-flex items-center justify-center text-white font-bold text-xs">1</span>
                 途经点
               </span>
               <span className="flex items-center gap-1.5">
@@ -1394,12 +1467,12 @@
       // 模拟数据 - 使用经纬度坐标 (lon, lat)
       // 起点: [119.495759, 35.625953], 终点: [119.496037, 35.624877]
       const [waypoints] = useState([
-        { lon: 119.495759, lat: 35.625953, label: 'A', name: '起点', completed: true },
-        { lon: 119.495815, lat: 35.625745, label: 'B', name: '途经点1', completed: true },
-        { lon: 119.495871, lat: 35.625537, label: 'C', name: '途经点2', completed: false },
-        { lon: 119.495927, lat: 35.625329, label: 'D', name: '途经点3', completed: false },
-        { lon: 119.495983, lat: 35.625121, label: 'E', name: '途经点4', completed: false },
-        { lon: 119.496037, lat: 35.624877, label: 'F', name: '终点', completed: false },
+        { lon: 119.495759, lat: 35.625953, label: '1', name: '起点', heading: 165, completed: false },
+        { lon: 119.495815, lat: 35.625745, label: '2', name: '途经点1', heading: 165, completed: false },
+        { lon: 119.495871, lat: 35.625537, label: '3', name: '途经点2', heading: 165, completed: false },
+        { lon: 119.495927, lat: 35.625329, label: '4', name: '途经点3', heading: 165, completed: false },
+        { lon: 119.495983, lat: 35.625121, label: '5', name: '途经点4', heading: 165, completed: false },
+        { lon: 119.496037, lat: 35.624877, label: '6', name: '终点', heading: 165, completed: false },
       ]);
 
       const [actualPath, setActualPath] = useState([
