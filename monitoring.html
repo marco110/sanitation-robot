@@ -802,7 +802,7 @@
         map.addLayer(vecLayer);
         map.addLayer(cvaLayer);
 
-        // 添加 WFS 矢量图层（红色边框 + 黄色填充）
+        // 添加 WFS 矢量图层
         const wfsSource = new ol.source.Vector({
           format: new ol.format.GeoJSON(),
           loader: function(extent, resolution, projection, success, failure) {
@@ -1192,7 +1192,7 @@
               )}
             </button>
             <span className="text-[10px] text-gray-400 font-mono">00:00:00</span>
-            <div className="w-36 h-1 bg-[#1a3350] rounded-full overflow-hidden cursor-pointer">
+            <div className="w-20 h-1 bg-[#1a3350] rounded-full overflow-hidden cursor-pointer">
               <div className="h-full" style={{ width: '35%', background: 'linear-gradient(90deg, #00D4FF, #00FF88)' }} />
             </div>
             <span className="text-[10px] text-gray-400 font-mono">04:23:15</span>
@@ -1216,7 +1216,7 @@
           </div>
           {/* 图例 */}
           <div className="absolute bottom-3 left-3 bg-black/60 backdrop-blur px-3 py-2 rounded-lg">
-            <div className="flex items-center gap-4 text-xs">
+            <div className="flex flex-col gap-1.5 text-xs">
               <span className="flex items-center gap-1.5">
                 <span className="w-8 h-0.5 inline-block rounded" style={{ background: 'repeating-linear-gradient(90deg, #ef4444 0px, #ef4444 6px, transparent 6px, transparent 12px)' }}></span>
                 规划路径
@@ -1228,10 +1228,6 @@
               <span className="flex items-center gap-1.5">
                 <span className="w-4 h-4 rounded-full bg-red-500 inline-flex items-center justify-center text-white font-bold text-xs">1</span>
                 途经点
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-green-400 inline-flex items-center justify-center text-black font-bold text-xs">▲</span>
-                当前位置
               </span>
             </div>
           </div>
@@ -1293,27 +1289,30 @@
         { id: 'right', label: '右视', icon: 'turn-right' },
       ]);
 
-      // 底部操作按钮配置 - 开始不变，暂停/继续切换
+      // 底部操作按钮配置 - 开始点击后隐藏，显示暂停/继续、终止
       const getBottomActions = () => {
         const actions = [];
-        // 开始按钮 - 始终不变
-        actions.push(
-          { label: '开始', icon: 'play', color: '#00FF88', bg: 'rgba(0,255,136,0.15)', border: 'rgba(0,255,136,0.4)', action: () => setVehicleStatus('running') }
-        );
-        // 暂停/继续按钮 - 根据状态切换
-        if (vehicleStatus === 'running') {
+        if (vehicleStatus === 'idle') {
+          // 开始按钮 - 仅在未开始时显示
           actions.push(
-            { label: '暂停', icon: 'pause', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)', action: handlePauseLocal }
+            { label: '开始', icon: 'play', color: '#00FF88', bg: 'rgba(0,255,136,0.15)', border: 'rgba(0,255,136,0.4)', action: () => setVehicleStatus('running') }
           );
         } else {
+          // 暂停/继续按钮 - 根据状态切换
+          if (vehicleStatus === 'running') {
+            actions.push(
+              { label: '暂停', icon: 'pause', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)', border: 'rgba(251,191,36,0.4)', action: handlePauseLocal }
+            );
+          } else {
+            actions.push(
+              { label: '继续', icon: 'continue', color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.4)', action: handleContinue }
+            );
+          }
+          // 终止按钮
           actions.push(
-            { label: '继续', icon: 'continue', color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.4)', action: handleContinue }
+            { label: '终止', icon: 'stop', color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)', action: handleTerminate }
           );
         }
-        // 终止按钮
-        actions.push(
-          { label: '终止', icon: 'stop', color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)', action: handleTerminate }
-        );
         return actions;
       };
 
@@ -1954,7 +1953,7 @@
                       </div>
 
                       {/* 视角切换按钮 - 居中显示在底部按钮上方 */}
-                      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10">
+                      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-10">
                         <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(13, 26, 46, 0.95)', backdropFilter: 'blur(8px)', border: '1px solid rgba(26, 51, 80, 0.8)' }}>
                           {cameraViews.map(view => (
                             <button
@@ -1977,7 +1976,7 @@
                       </div>
 
                       {/* 底部操作按钮栏 - 居中显示在播放进度条上方 */}
-                      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-10">
+                      <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-10">
                         <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(13, 26, 46, 0.95)', backdropFilter: 'blur(8px)', border: '1px solid rgba(26, 51, 80, 0.8)' }}>
                           {getBottomActions().map((action, index) => (
                             <button
