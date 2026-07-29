@@ -578,14 +578,6 @@
                 <option key={v.plate} value={v.plate}>{v.plate}（{v.category} · {v.model}）</option>
               ))}
             </select>
-            {selectedVehicle && (
-              <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(0,168,112,0.05)', border: '1px solid rgba(0,168,112,0.12)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ color: '#00a870' }}><IconInfo /></span>
-                <span style={{ fontSize: 12, color: '#00a870', fontFamily: 'Noto Sans SC, sans-serif' }}>
-                  已选车辆：{selectedVehicle.plate}，{selectedVehicle.workType}，状态：{selectedVehicle.status}
-                </span>
-              </div>
-            )}
           </div>
           <div>
             <label className="form-label"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><IconRoute /> 路线选择</span></label>
@@ -1602,7 +1594,7 @@
           {showNewTask && (
             <NewTaskModal
               onClose={() => { setShowNewTask(false); setNewTaskVehicle(null); }}
-              onCreate={(task) => { window.location.href = 'monitoring.html?vehicle=' + encodeURIComponent(task.vehicle) + '&task=' + encodeURIComponent(task.name); }}
+              onCreate={(task) => { window.location.href = 'monitoring.html?from=create&vehicle=' + encodeURIComponent(task.vehicle) + '&task=' + encodeURIComponent(task.name); }}
               vehiclePlate={newTaskVehicle}
               vehicles={vehicles}
             />
