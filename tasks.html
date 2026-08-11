@@ -2107,8 +2107,6 @@
             };
 
             const statusConfig = {
-                '标准作业': { color: 'text-blue-400 bg-blue-400/10 border-blue-400/30', dot: 'bg-blue-400' },
-                '增强作业': { color: 'text-purple-400 bg-purple-400/10 border-purple-400/30', dot: 'bg-purple-400' },
                 '已完成': { color: 'text-green-400 bg-green-400/10 border-green-400/30', dot: 'bg-green-400' },
                 '待开始': { color: 'text-gray-400 bg-gray-400/10 border-gray-400/30', dot: 'bg-gray-400' },
                 '未完成': { color: 'text-orange-400 bg-orange-400/10 border-orange-400/30', dot: 'bg-orange-400' },
@@ -2117,11 +2115,10 @@
 
             const counts = {
                 '全部': tasks.length,
-                '标准作业': tasks.filter(t => t.status === '标准作业').length,
-                '增强作业': tasks.filter(t => t.status === '增强作业').length,
                 '已完成': tasks.filter(t => t.progress === 100).length,
                 '待开始': tasks.filter(t => t.progress === 0).length,
                 '未完成': tasks.filter(t => t.progress > 0 && t.progress < 100 && t.endTime !== '-').length,
+                '作业中': tasks.filter(t => t.progress > 0 && t.progress < 100 && t.endTime == '-').length,
             };
 
             return (
@@ -2334,19 +2331,7 @@
                                 )}
                             </div>
 
-                            {/* Filter Tabs */}
-                            <div className="flex gap-2 mb-4">
-                                {['全部', '待开始', '未完成', '标准作业', '增强作业', '已完成'].map(f => (
-                                    <button key={f} onClick={() => setFilter(f)}
-                                        className={"px-4 py-2 rounded-lg text-xs font-medium transition-all " + (
-                                            filter === f
-                                                ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/30'
-                                                : 'text-gray-400 hover:text-white border border-transparent'
-                                        )}>
-                                        {f} ({counts[f] || 0})
-                                    </button>
-                                ))}
-                            </div>
+                         
 
                             {/* Search Bar */}
                             <div style={{ background: 'linear-gradient(135deg, #0d1a2e 0%, #0a1220 100%)', border: '1px solid #1a3350', borderRadius: 12, padding: 16, marginBottom: 16 }}>
@@ -2395,6 +2380,20 @@
                                         </select>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Filter Tabs */}
+                            <div className="flex gap-2 mb-4">
+                                {['全部', '待开始', '作业中','未完成', '已完成'].map(f => (
+                                    <button key={f} onClick={() => setFilter(f)}
+                                        className={"px-4 py-2 rounded-lg text-xs font-medium transition-all " + (
+                                            filter === f
+                                                ? 'bg-cyan-400/10 text-cyan-400 border border-cyan-400/30'
+                                                : 'text-gray-400 hover:text-white border border-transparent'
+                                        )}>
+                                        {f} ({counts[f] || 0})
+                                    </button>
+                                ))}
                             </div>
 
                             {/* Task Table */}
