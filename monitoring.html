@@ -1292,7 +1292,7 @@
         { id: 'right', label: '右视', icon: 'turn-right' },
       ]);
 
-      // 底部操作按钮配置 - 开始点击后隐藏，显示暂停/继续、终止
+      // 底部操作按钮配置 - 开始点击后隐藏，终止始终显示
       const getBottomActions = () => {
         const actions = [];
         if (vehicleStatus === 'idle') {
@@ -1311,11 +1311,11 @@
               { label: '继续', icon: 'continue', color: '#34d399', bg: 'rgba(52,211,153,0.15)', border: 'rgba(52,211,153,0.4)', action: handleContinue }
             );
           }
-          // 终止按钮
-          actions.push(
-            { label: '终止', icon: 'stop', color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)', action: handleTerminate }
-          );
         }
+        // 终止按钮 - 始终显示
+        actions.push(
+          { label: '终止', icon: 'stop', color: '#f87171', bg: 'rgba(248,113,113,0.15)', border: 'rgba(248,113,113,0.4)', action: handleTerminate }
+        );
         return actions;
       };
 
