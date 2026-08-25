@@ -1259,9 +1259,14 @@
       const [sidebarOpen, setSidebarOpen] = useState(true);
       const [showVehiclePanel, setShowVehiclePanel] = useState(true); // 控制车辆仪表盘显示/隐藏
       const [showVideoPanel, setShowVideoPanel] = useState(true); // 控制视频面板显示/隐藏
-      const [isPlaying, setIsPlaying] = useState(true);
+      // 从作业列表-查看详情进入（URL 带 vehicle 参数且非 from=create）时，车辆直接处于运行中
+      const isFromDetail = (() => {
+        const params = new URLSearchParams(window.location.search);
+        return !!params.get('vehicle') && params.get('from') !== 'create';
+      })();
+      const [isPlaying, setIsPlaying] = useState(isFromDetail); // 查看详情进入时直接播放；其他情况点击"开始"后才移动
       const [currentSpeed, setSpeed] = useState(1);
-      const [vehicleStatus, setVehicleStatus] = useState('idle'); // idle, running, paused_local, paused_parking, terminated
+      const [vehicleStatus, setVehicleStatus] = useState(isFromDetail ? 'running' : 'idle'); // idle, running, paused_local, paused_parking, terminated
       const [showParkingModal, setShowParkingModal] = useState(false);
       const [showModifyModal, setShowModifyModal] = useState(false);
       const [modifyData, setModifyData] = useState({ sweepCount: 2, route: '清扫路线一' });
@@ -1272,6 +1277,10 @@
       const debugVehicleDropdownRef = useRef(null);
       const [selectedParkingPoint, setSelectedParkingPoint] = useState('');
       const [showBreakpointModal, setShowBreakpointModal] = useState(false);
+      // 断点作业进度弹窗（与创建作业进度弹窗一致）
+      const [showBreakpointProgress, setShowBreakpointProgress] = useState(false);
+      const [breakpointStep, setBreakpointStep] = useState(0); // 0: step1, 1: step2
+      const [breakpointCountdown, setBreakpointCountdown] = useState(3);
       const [showUpperControlModal, setShowUpperControlModal] = useState(false);
       const [showModifyPanel, setShowModifyPanel] = useState(false);
       const [showDispatchPanel, setShowDispatchPanel] = useState(false);
@@ -1298,7 +1307,7 @@
         if (vehicleStatus === 'idle') {
           // 开始按钮 - 仅在未开始时显示
           actions.push(
-            { label: '开始', icon: 'play', color: '#00FF88', bg: 'rgba(0,255,136,0.15)', border: 'rgba(0,255,136,0.4)', action: () => { setVehicleStatus('running'); if (isFromCreate) setShowStep3Modal(true); } }
+            { label: '开始', icon: 'play', color: '#00FF88', bg: 'rgba(0,255,136,0.15)', border: 'rgba(0,255,136,0.4)', action: () => { setVehicleStatus('running'); setIsPlaying(true); if (isFromCreate) setShowStep3Modal(true); } }
           );
         } else {
           // 暂停/继续按钮 - 根据状态切换
@@ -1542,9 +1551,35 @@
         return () => clearTimeout(timer);
       }, [showStep3Modal]);
 
-      // 模拟车辆移动 - 循环经过所有途径点
+      // 管理断点作业进度弹窗的阶段和倒计时（与创建作业进度弹窗一致）
+      useEffect(() => {
+        if (!showBreakpointProgress) return;
+
+        if (breakpointStep === 0) {
+          // Step 1: 倒计时
+          if (breakpointCountdown <= 0) {
+            setBreakpointStep(1);
+            return;
+          }
+          const timer = setTimeout(() => {
+            setBreakpointCountdown(prev => prev - 1);
+          }, 1000);
+          return () => clearTimeout(timer);
+        } else if (breakpointStep === 1) {
+          // Step 2: 等待约3秒后关闭弹窗
+          const timer = setTimeout(() => {
+            setShowBreakpointProgress(false);
+            // 断点作业完成，恢复为未开始状态，底部按钮显示"开始"和"终止"
+            setVehicleStatus('idle');
+          }, 3000);
+          return () => clearTimeout(timer);
+        }
+      }, [showBreakpointProgress, breakpointStep, breakpointCountdown]);
+
+      // 模拟车辆移动 - 循环经过所有途径点（仅点击"开始"后 isPlaying 为 true 时才移动）
       const vehicleProgressRef = useRef(0);
       useEffect(() => {
+        if (!isPlaying) return; // 未开始时车辆静止
         const interval = setInterval(() => {
           // 计算总共经过几个途经点
           const totalSegments = waypoints.length - 1; // 所有途经点构成的路段数
@@ -1574,7 +1609,7 @@
           if (vehicleProgressRef.current >= 1) vehicleProgressRef.current = 0; // 循环
         }, 600);
         return () => clearInterval(interval);
-      }, [waypoints]);
+      }, [waypoints, isPlaying]);
 
       return (
         <div className="flex h-screen overflow-hidden">
@@ -2058,8 +2093,11 @@
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setVehicleStatus('running');
+                      setVehicleStatus('idle');
                       setShowBreakpointModal(false);
+                      setShowBreakpointProgress(true);
+                      setBreakpointStep(0);
+                      setBreakpointCountdown(3);
                     }}
                     className="flex-1 px-3 py-2 text-xs rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 transition-colors"
                   >
@@ -2846,6 +2884,53 @@
                 <div className="text-xs text-gray-500 mt-3">
                   {deployStep === 0 && '系统正在进行自检和初始化，请耐心等待...'}
                   {deployStep === 1 && '正在计算最优清扫路径，请稍候...'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 断点作业进度弹窗（与创建作业进度弹窗一致，仅2步：上电初始化 + 任务下发） */}
+          {showBreakpointProgress && (
+            <div className="fixed inset-0 flex items-center justify-center z-[100]" style={{ background: 'rgba(0,0,0,0.75)' }}>
+              <div className="panel panel-glow rounded-xl w-[420px] p-8 text-center" onClick={e => e.stopPropagation()}>
+                {/* 步骤指示器 - 仅2步 */}
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all " + (breakpointStep >= 0 ? 'bg-cyan-500 text-white' : 'bg-[#1a3350] text-gray-500')}>1</div>
+                  <div className={"w-12 h-0.5 transition-all " + (breakpointStep >= 1 ? 'bg-cyan-500' : 'bg-[#1a3350]')}></div>
+                  <div className={"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all " + (breakpointStep >= 1 ? 'bg-cyan-500 text-white' : 'bg-[#1a3350] text-gray-500')}>2</div>
+                </div>
+
+                {/* 动画图标 */}
+                <div className="mb-6 flex justify-center">
+                  {breakpointStep === 0 ? (
+                    <div className="w-16 h-16 rounded-full border-4 border-cyan-400/30 border-t-cyan-400 animate-spin"></div>
+                  ) : (
+                    <svg className="w-16 h-16 text-cyan-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                  )}
+                </div>
+
+                {/* 步骤标题和描述 */}
+                <div className="text-lg font-semibold text-white mb-2">
+                  {breakpointStep === 0 && '车辆上电，初始化智驾系统（约15秒）'}
+                  {breakpointStep === 1 && '断点任务下发中，等待路径规划'}
+                </div>
+
+                {/* 倒计时或进度条 */}
+                {breakpointStep === 0 ? (
+                  <div className="text-4xl font-bold text-cyan-400 mb-3">{breakpointCountdown}s</div>
+                ) : (
+                  <div className="mt-2">
+                    <div className="w-full bg-[#1a3350] rounded-full h-2 overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full animate-pulse" style={{ width: '100%' }}></div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-500 mt-3">
+                  {breakpointStep === 0 && '系统正在进行自检和初始化，请耐心等待...'}
+                  {breakpointStep === 1 && '正在恢复上次断点位置并规划路径，请稍候...'}
                 </div>
               </div>
             </div>
