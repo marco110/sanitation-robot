@@ -1275,6 +1275,16 @@
       const [showDebugVehicleDropdown, setShowDebugVehicleDropdown] = useState(false);
       const [debugActiveVehicle, setDebugActiveVehicle] = useState('鲁B8888');
       const debugVehicleDropdownRef = useRef(null);
+      // 点击外部关闭调试车牌下拉
+      useEffect(() => {
+        const handleClickOutside = (e) => {
+          if (debugVehicleDropdownRef.current && !debugVehicleDropdownRef.current.contains(e.target)) {
+            setShowDebugVehicleDropdown(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+      }, []);
       const [selectedParkingPoint, setSelectedParkingPoint] = useState('');
       const [showBreakpointModal, setShowBreakpointModal] = useState(false);
       // 断点作业进度弹窗（与创建作业进度弹窗一致）
@@ -2389,15 +2399,15 @@
                     <span className="text-xs text-gray-500 ml-1">·</span>
                     <div className="relative" ref={debugVehicleDropdownRef}>
                       <button
-                        onClick={() => setShowDebugVehicleDropdown(v => v)}
-                        className="flex items-center gap-1 px-2 py-0.5 rounded transition-all"
+                        onClick={() => setShowDebugVehicleDropdown(prev => !prev)}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded transition-all cursor-pointer"
                         style={{
                           background: showDebugVehicleDropdown ? 'rgba(139,92,246,0.15)' : 'rgba(139,92,246,0.08)',
                           border: `1px solid ${showDebugVehicleDropdown ? 'rgba(139,92,246,0.4)' : 'rgba(139,92,246,0.2)'}`,
                         }}
                       >
                         <span className="text-xs font-medium text-cyan-400">{debugActiveVehicle}</span>
-                        {/*  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-0.5" style={{ transform: showDebugVehicleDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>*/}
+                        <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" className="ml-0.5" style={{ transform: showDebugVehicleDropdown ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>
                       </button>
                       {showDebugVehicleDropdown && (
                         <div
@@ -2410,7 +2420,7 @@
                             animation: 'modalIn 0.18s ease forwards',
                           }}
                         >
-                          {['鲁B8888', '鲁B9999', '鲁B6666', '鲁B7777'].map(plate => (
+                          {[activeVehicle.plate, ...otherVehicles.map(v => v.plate)].filter((p, i, arr) => arr.indexOf(p) === i).map(plate => (
                             <div
                               key={plate}
                               onClick={() => { setDebugActiveVehicle(plate); setShowDebugVehicleDropdown(false); }}
