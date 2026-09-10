@@ -407,10 +407,12 @@
       const [battery, setBattery] = useState(72);
       const [waterLevel, setWaterLevel] = useState(85);
       const [progress, setProgress] = useState(65);
+      // 故障报警：故障码 / 故障描述 / 状态(产生·消失) / 时间
       const [alerts, setAlerts] = useState([
-        { id: 1, level: 'error', title: '左扫盘异常', desc: '左扫盘转速过高', time: '04:21:30' },
-        { id: 2, level: 'warning', title: '低电量警告', desc: '电池电量低于 20%', time: '04:15:00' },
-        // { id: 3, level: 'info', title: '途经点接近', desc: '距离D点约 500m', time: '04:10:00' },
+        { id: 1, code: '0x0008', desc: '超声波故障', status: '产生', time: '2026-10-15 12:34:56' },
+        { id: 2, code: '0x0002', desc: '左扫盘转速过高', status: '产生', time: '2026-10-15 12:30:12' },
+        { id: 3, code: '0x0011', desc: '污水箱满', status: '产生', time: '2026-10-15 12:18:40' },
+        { id: 4, code: '0x0005', desc: '低电量警告', status: '消失', time: '2026-10-15 12:05:03' },
       ]);
 
       useEffect(() => {
@@ -422,10 +424,10 @@
         return () => clearInterval(interval);
       }, []);
 
-      const levelColors = {
-        error: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400' },
-        warning: { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-        info: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400' },
+      // 状态样式：产生=红(报警中)，消失=绿(已恢复)
+      const statusStyles = {
+        产生: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400' },
+        消失: { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400' },
       };
 
       return (
@@ -622,19 +624,23 @@
             <div className="flex items-center justify-between mb-0.5">
               <span className="text-[10px] text-cyan-400 font-medium">故障报警</span>
               <span className="text-[10px] px-1 py-0.5 rounded bg-red-500/20 text-red-400">
-                {alerts.filter(a => a.level === 'error' || a.level === 'warning').length} 条
+                {alerts.filter(a => a.status === '产生').length} 条
               </span>
             </div>
             <div className="flex-1 overflow-auto space-y-0.5 min-h-0">
               {alerts.map(alert => {
-                const colors = levelColors[alert.level];
+                const colors = statusStyles[alert.status] || statusStyles['消失'];
                 return (
                   <div key={alert.id} className={`${colors.bg} border ${colors.border} rounded p-1`}>
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[10px] font-medium ${colors.text}`}>{alert.title}</span>
-                      <span className="text-[9px] text-gray-500 font-mono">{alert.time}</span>
+                    {/* 故障码 + 状态 */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className={`text-[10px] font-mono font-medium ${colors.text}`}>{alert.code}</span>
+                      <span className={`text-[9px] px-1 rounded border ${colors.border} ${colors.text} flex-shrink-0`}>{alert.status}</span>
                     </div>
-                    <p className="text-[9px] text-gray-400 mt-0.5">{alert.desc}</p>
+                    {/* 故障描述 */}
+                    <p className="text-[10px] text-gray-300 mt-0.5 truncate">{alert.desc}</p>
+                    {/* 时间 */}
+                    <p className="text-[9px] text-gray-500 font-mono mt-0.5">{alert.time}</p>
                   </div>
                 );
               })}
@@ -775,7 +781,7 @@
         const map = new ol.Map({
           target: mapRef.current,
           view: new ol.View({
-            center: ol.proj.fromLonLat([centerLon, centerLat]),
+            center: ol.proj.fromLonLat([120.7513040950943, 31.24560700522452]),
             zoom: 16,
             maxZoom: 23,
             minZoom: 1,
@@ -786,7 +792,7 @@
         });
 
         // 添加天地图底图（CGCS2000 坐标系，与 WGS84 基本一致，无偏移）
-        
+
         const vecLayer = new ol.layer.Tile({
           source: new ol.source.XYZ({
             url: `https://t0.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=6fa14bd50b2d9f7d27010d272baf685c`,
@@ -805,22 +811,18 @@
         // 添加 WFS 矢量图层
         const wfsSource = new ol.source.Vector({
           format: new ol.format.GeoJSON(),
-          loader: function(extent, resolution, projection, success, failure) {
+          loader: function (extent, resolution, projection, success, failure) {
             const extent4326 = ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:4326');
             const bbox = extent4326.join(',');
-            const url = 'https://eserver5.geovisearth.com/4/e-server/wfs' +
-              '?service=WFS&version=1.0.0&request=GetFeature' +
-              '&typename=WP-2065252339390451712' +
-              '&outputFormat=application/json' +
-              '&srsname=EPSG:4326' +
-              '&bbox=' + bbox;
+            const url = 'https://eserver5.geovisearth.com/5/e-server/wfs?service=WFS&version=1.0.0&request=GetFeature&typename=WP-2095772402408816640&outputFormat=application/json&srsname=EPSG:4326&bbox=' + bbox;
             fetch(url)
-              .then(function(response) { return response.json(); })
-              .then(function(data) {
-                var features = wfsSource.getFormat().readFeatures(data, {
+              .then(function (response) { return response.json(); })
+              .then(function (data) {
+                let features = wfsSource.getFormat().readFeatures(data, {
                   dataProjection: 'EPSG:4326',
                   featureProjection: 'EPSG:3857',
                 });
+
                 wfsSource.addFeatures(features);
                 success(features);
               })
@@ -833,11 +835,11 @@
           source: wfsSource,
           style: new ol.style.Style({
             fill: new ol.style.Fill({
-              color: 'transparent',
+              color: '#000000',
             }),
             stroke: new ol.style.Stroke({
               color: '#ffffff',
-              width: 3,
+              width: 1,
             }),
           }),
           minZoom: 1,
@@ -846,7 +848,42 @@
           zIndex: 1,
           declutter: true,
         });
-        map.addLayer(wfsLayer);
+        // map.addLayer(wfsLayer);
+
+        // 添加 WMS 图层（服务端按 EPSG:4326 出图，源投影设为 4326，由 OL 重投影到当前视图）
+        // 只需维护下面一个 GetMap URL 模板变量即可：BBOX/WIDTH/HEIGHT 等动态参数会由 OL 按当前视口填充。
+        // （OL 内部会自动补 REQUEST=GetMap，并按 params.VERSION 选择 SRS/CRS，不会重复拼参数）
+        const wmsUrl = 'https://eserver5.geovisearth.com/4/e-server/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=WP-2065252339390451712&BBOX={bbox}&style=&SRS=EPSG:4326&STYLES=&WIDTH={WIDTH}&HEIGHT={HEIGHT}';
+        // const wmsUrl='https://eserver5.geovisearth.com/3/e-server/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&FORMAT=image/png&TRANSPARENT=true&LAYERS=WP-2097219989462347776&BBOX={bbox}&style=&SRS=EPSG:4326&STYLES=&WIDTH={WIDTH}&HEIGHT={HEIGHT}';
+        // 把 URL 模板收敛为 ol.source.ImageWMS 需要的 url + params：
+        // 拆分基础地址与固定查询参数，剔除动态占位符（BBOX/WIDTH/HEIGHT/REQUEST），style= 与 STYLES= 归一
+        function createWmsSourceFromUrl(templateUrl) {
+          const qi = templateUrl.indexOf('?');
+          const url = qi === -1 ? templateUrl : templateUrl.slice(0, qi);
+          const params = {};
+          if (qi !== -1) {
+            new URLSearchParams(templateUrl.slice(qi + 1)).forEach(function (value, key) {
+              const k = key.toUpperCase();
+              if (k === 'BBOX' || k === 'WIDTH' || k === 'HEIGHT' || k === 'REQUEST') return;
+              // 保留非空值；同名字段(style/STYLES)后者非空可覆盖前者
+              if (!(k in params) || value !== '') params[k] = value;
+            });
+          }
+          return new ol.source.ImageWMS({
+            url: url,
+            params: params,
+            projection: 'EPSG:4326',
+            crossOrigin: 'anonymous',
+            ratio: 1,
+          });
+        }
+
+        const wmsLayer = new ol.layer.Image({
+          source: createWmsSourceFromUrl(wmsUrl),
+          opacity: 0.6,
+          zIndex: 1,
+        });
+        map.addLayer(wmsLayer);
 
         // 添加 GeoTIFF 图层
         const BeijingRoad = new ol.layer.Tile({
@@ -1075,7 +1112,7 @@
             map.getView().fit(extent, {
               maxZoom: 23,
               duration: 500,
-              padding: [50, 50, 50, 50] 
+              padding: [50, 50, 50, 50]
             });
           }
         }
@@ -1886,7 +1923,7 @@
                         style={{ color: showVideoPanel ? '#00D4FF' : '#64748b', background: showVideoPanel ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.03)', border: `1px solid ${showVideoPanel ? 'rgba(0,212,255,0.3)' : '#1a3350'}` }}
                         title={showVideoPanel ? '隐藏视频' : '显示视频'}
                       >
-                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                         视频
                       </button>
                     </div>
