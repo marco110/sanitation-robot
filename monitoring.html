@@ -1560,9 +1560,9 @@
         const params = new URLSearchParams(window.location.search);
         if (params.get('from') === 'create') {
           setIsFromCreate(true);
-          setShowDeployProgress(true);
-          setDeployStep(0);
-          setDeployCountdown(5);
+          // setShowDeployProgress(true);
+          // setDeployStep(0);
+          // setDeployCountdown(5);
         }
       }, []);
 
@@ -2483,7 +2483,7 @@
                 </div>
 
                 <div className="modal-body px-5 py-4 space-y-5 overflow-y-auto">
-                  {/* 分组一：任务下发相关 */}
+                  {/* 分组一：任务下发相关 
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-1 h-4 rounded-full" style={{ background: '#3b82f6' }}></div>
@@ -2523,15 +2523,12 @@
                         </button>
                       ))}
                     </div>
-                    {/* 清扫任务下发展开面板 - Step1内容 */}
                     {showDispatchPanel && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)' }}>
-                        {/* 调试标题 */}
                         <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(59,130,246,0.2)' }}>
                           <span className="text-xs font-semibold" style={{ color: '#3b82f6' }}>清扫任务下发</span>
                           <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(59,130,246,0.2)', color: '#60a5fa' }}>[调试]</span>
                         </div>
-                        {/* 作业名称 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>作业名称</label>
                           <input
@@ -2540,7 +2537,6 @@
                             placeholder="输入作业名称"
                           />
                         </div>
-                        {/* 路线选择 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>路线选择</label>
                           <select
@@ -2555,7 +2551,6 @@
                             <option value="r5">路线 E - 公园景区（2.9 km）</option>
                           </select>
                         </div>
-                        {/* 清扫次数 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-1.5" style={{ color: '#3b82f6' }}>清扫次数</label>
                           <div className="flex items-center gap-2">
@@ -2571,7 +2566,6 @@
                             <span className="text-xs text-gray-500 ml-2">次</span>
                           </div>
                         </div>
-                        {/* 按钮组 */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -2593,15 +2587,12 @@
                         </div>
                       </div>
                     )}
-                    {/* 清扫任务修改展开面板 */}
                     {showModifyPanel && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)' }}>
-                        {/* 调试标题 */}
                         <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(6,182,212,0.2)' }}>
                           <span className="text-xs font-semibold" style={{ color: '#06b6d4' }}>清扫任务修改</span>
                           <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(6,182,212,0.2)', color: '#22d3ee' }}>[调试]</span>
                         </div>
-                        {/* 清扫次数 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-1.5" style={{ color: '#06b6d4' }}>清扫次数</label>
                           <div className="flex items-center gap-2">
@@ -2623,7 +2614,6 @@
                             >+</button>
                           </div>
                         </div>
-                        {/* 作业路线 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-1.5" style={{ color: '#06b6d4' }}>作业路线</label>
                           <select
@@ -2638,7 +2628,6 @@
                             <option value="综合楼周边路线">综合楼周边路线</option>
                           </select>
                         </div>
-                        {/* 按钮组 */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -2660,15 +2649,12 @@
                         </div>
                       </div>
                     )}
-                    {/* 上装模式控制展开面板 - Step2内容 */}
                     {showUpperPanel && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)' }}>
-                        {/* 调试标题 */}
                         <div className="mb-3 pb-2 border-b" style={{ borderColor: 'rgba(16,185,129,0.2)' }}>
                           <span className="text-xs font-semibold" style={{ color: '#10b981' }}>上装模式控制</span>
                           <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(16,185,129,0.2)', color: '#34d399' }}>[调试]</span>
                         </div>
-                        {/* 工作模式 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-2" style={{ color: '#10b981' }}>工作模式</label>
                           <div className="grid grid-cols-3 gap-2">
@@ -2689,7 +2675,6 @@
                             ))}
                           </div>
                         </div>
-                        {/* 子模式 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-2" style={{ color: '#10b981' }}>子模式</label>
                           <div className="flex flex-wrap gap-2">
@@ -2718,7 +2703,6 @@
                             ))}
                           </div>
                         </div>
-                        {/* 作业模式 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-2" style={{ color: '#10b981' }}>作业模式</label>
                           <div className="grid grid-cols-2 gap-2">
@@ -2739,7 +2723,6 @@
                             ))}
                           </div>
                         </div>
-                        {/* 灯光设置 */}
                         <div className="mb-3">
                           <label className="block text-xs mb-2" style={{ color: '#10b981' }}>灯光设置</label>
                           <div className="grid grid-cols-3 gap-2">
@@ -2760,7 +2743,6 @@
                             ))}
                           </div>
                         </div>
-                        {/* 按钮组 */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
@@ -2783,8 +2765,9 @@
                       </div>
                     )}
                   </div>
+                  */}
 
-                  {/* 分割线 */}
+
                   <div className="glow-line"></div>
 
                   {/* 分组二：任务控制相关 */}
@@ -2800,8 +2783,7 @@
                         { label: '开始', color: '#00FF88', bg: 'rgba(0,255,136,0.1)', border: 'rgba(0,255,136,0.35)' },
                         { label: '原地暂停', color: '#fbbf24', bg: 'rgba(251,191,36,0.1)', border: 'rgba(251,191,36,0.35)' },
                         { label: '继续', color: '#34d399', bg: 'rgba(52,211,153,0.1)', border: 'rgba(52,211,153,0.35)' },
-                        { label: '终止', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)' },
-                        { label: '断点恢复', color: '#a78bfa', bg: 'rgba(167,139,250,0.1)', border: 'rgba(167,139,250,0.35)' },
+                        { label: '终止', color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.35)' }
                       ].map(item => (
                         <button
                           key={item.label}
@@ -2814,7 +2796,7 @@
                           {item.label}
                         </button>
                       ))}
-                      {/* 停车点暂停 - 可展开按钮 */}
+                      {/* 停车点暂停 - 可展开按钮 
                       <button
                         onClick={() => setShowDebugPanel(!showDebugPanel)}
                         className="flex items-center justify-center py-2.5 px-1 rounded-lg transition-all text-xs font-medium"
@@ -2825,11 +2807,10 @@
                         停车点暂停
                         <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="ml-1" style={{ transform: showDebugPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" /></svg>
                       </button>
+                      */}
                     </div>
-                    {/* 展开面板 - 文档流布局 */}
                     {showDebugPanel && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.25)' }}>
-                        {/* 停车点选择 */}
                         <div className="mb-2">
                           <label className="block text-xs mb-1.5" style={{ color: '#f97316' }}>停车点选择</label>
                           <select
@@ -2845,7 +2826,6 @@
                             <option value="P4">停车点 4 - 维修区</option>
                           </select>
                         </div>
-                        {/* 按钮组 */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => {
